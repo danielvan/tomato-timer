@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tomato Timer with Task Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Timer Section -->
+        <div class="timer-section">
+            <div class="timer-display">
+                <span id="timerHours">00</span>:<span id="timerMinutes">00</span>:<span id="timerSeconds">00</span>
+            </div>
+            <div class="preset-buttons">
+                <button id="preset5">5 min</button>
+                <button id="preset15">15 min</button>
+                <button id="preset25">25 min</button>
+            </div>
+            <div class="timer-input">
+                <div class="time-inputs">
+                    <input type="number" id="hours" min="0" max="23" placeholder="HH">
+                    <span>:</span>
+                    <input type="number" id="minutes" min="0" max="59" placeholder="MM">
+                    <span>:</span>
+                    <input type="number" id="seconds" min="0" max="59" placeholder="SS">
+                </div>
+            </div>
+            <div class="timer-controls">
+                <button id="startTimer">Start</button>
+                <button id="pauseTimer">Pause</button>
+                <button id="resetTimer">Reset</button>
+            </div>
+        </div>
+
+        <!-- Task Section -->
+        <div class="task-section">
+            <div class="task-controls">
+                <button onclick="showAddTaskModal()">Add Task</button>
+                <button onclick="addDivider()">Add Divider</button>
+                <div class="filter-controls">
+                    <select id="statusFilter">
+                        <option value="all">All Status</option>
+                        <option value="not-started">Not Started</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="done">Done</option>
+                        <option value="waiting">Waiting Feedback</option>
+                    </select>
+                </div>
+            </div>
+            <div id="taskList" class="task-list"></div>
+        </div>
+    </div>
+
+    <!-- Add Task Modal -->
+    <div id="taskModal" class="modal">
+        <div class="modal-content">
+            <h2>Add New Task</h2>
+            <input type="text" id="taskName" placeholder="Task Name">
+            <input type="text" id="projectName" placeholder="Project Name">
+            <input type="date" id="taskDeadline">
+            <select id="taskStatus">
+                <option value="not-started">Not Started</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+                <option value="waiting">Waiting Feedback</option>
+            </select>
+            <button onclick="addTask()">Add</button>
+            <button onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+    <script src="timer.js"></script>
+    <script src="tasks.js"></script>
+</body>
+</html> 
