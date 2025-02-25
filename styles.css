@@ -97,6 +97,31 @@ button {
     cursor: move;
     position: relative;
     transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.task-card[data-status="in-progress"] {
+    border-left: 3px solid #FFB800;
+}
+
+.task-card[data-status="done"] {
+    border-left: 3px solid #4CAF50;
+}
+
+.task-card[data-status="done"] .task-content {
+    opacity: 0.6;
+}
+
+.task-card[data-status="waiting"] {
+    border-left: 3px solid #FF9800;
+}
+
+/* Special divider for waiting feedback section */
+.divider.waiting-feedback {
+    background-color: #FFF3E0;
+    border-left: 3px solid #FF9800;
+    color: #E65100;
+    font-weight: bold;
 }
 
 .task-card:hover {
@@ -266,4 +291,75 @@ button {
     background-color: #f5f5f5;
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.timer-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #1a1a1a;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+.timer-content {
+    text-align: center;
+}
+
+.large-timer {
+    font-size: 8rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+}
+
+.current-task {
+    margin: 2rem 0;
+}
+
+.current-task h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.current-task p {
+    font-size: 1.2rem;
+    color: #888;
+}
+
+.task-actions {
+    margin: 2rem 0;
+}
+
+.complete-btn {
+    background-color: #4CAF50;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+    margin: 0.5rem;
+}
+
+.undo-btn {
+    background-color: #666;
+    padding: 1rem 2rem;
+    border-radius: 0.5rem;
+    font-size: 1.2rem;
+    margin: 0.5rem;
+}
+
+.exit-btn {
+    position: absolute;
+    top: 2rem;
+    right: 2rem;
+    background-color: #333;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+}
+
+.hidden {
+    display: none !important;
 } 

@@ -7,9 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
-    <div class="container">
+    <div id="normalView" class="container">
         <!-- Timer Section -->
         <div class="timer-section">
             <div class="timer-display">
@@ -52,6 +53,25 @@
                 </div>
             </div>
             <div id="taskList" class="task-list"></div>
+        </div>
+    </div>
+
+    <!-- Full Screen Timer View -->
+    <div id="timerView" class="timer-fullscreen hidden">
+        <div class="timer-content">
+            <div class="large-timer">
+                <span id="fsTimerHours">00</span>:<span id="fsTimerMinutes">00</span>:<span id="fsTimerSeconds">00</span>
+            </div>
+            <div class="current-task">
+                <h2 id="currentTaskName"></h2>
+                <p id="currentTaskProject"></p>
+                <p id="currentTaskDeadline"></p>
+            </div>
+            <div class="task-actions">
+                <button id="completeTask" class="complete-btn">Complete Task</button>
+                <button id="undoComplete" class="undo-btn hidden">Undo Complete</button>
+            </div>
+            <button id="exitFullscreen" class="exit-btn">Exit Full Screen</button>
         </div>
     </div>
 

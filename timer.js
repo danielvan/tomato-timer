@@ -1,6 +1,8 @@
-let timerInterval;
-let timeLeft = 0;
-let notificationPermission = false;
+let timer;
+let timeLeft;
+let isRunning = false;
+let completedTasks = [];
+let currentTask = null;
 
 // Initialize notification permission
 async function initializeNotifications() {
@@ -13,7 +15,6 @@ async function initializeNotifications() {
 
         // Check if we already have permission
         if (Notification.permission === 'granted') {
-            notificationPermission = true;
             return true;
         }
 
@@ -24,8 +25,7 @@ async function initializeNotifications() {
 
         // Request permission
         const permission = await Notification.requestPermission();
-        notificationPermission = permission === 'granted';
-        return notificationPermission;
+        return permission === 'granted';
     } catch (error) {
         console.error('Error initializing notifications:', error);
         return false;
@@ -33,7 +33,7 @@ async function initializeNotifications() {
 }
 
 async function showNotification() {
-    if (!notificationPermission) return;
+    if (!await initializeNotifications()) return;
 
     try {
         const notification = new Notification('Time is up!', {
@@ -59,23 +59,31 @@ async function showNotification() {
     }
 }
 
-function updateTimeFromInputs() {
-    const hours = parseInt(document.getElementById('hours').value) || 0;
-    const minutes = parseInt(document.getElementById('minutes').value) || 0;
-    const seconds = parseInt(document.getElementById('seconds').value) || 0;
-
-    timeLeft = (hours * 3600) + (minutes * 60) + seconds;
-    updateTimerDisplay();
+function startTimer() {
+    if (!isRunning) {
+        const hours = parseInt(document.getElementById('hours').value) || 0;
+        const minutes = parseInt(document.getElementById('minutes').value) || 0;
+        const seconds = parseInt(document.getElementById('seconds').value) || 0;
+        
+        timeLeft = (hours * 3600) + (minutes * 60) + seconds;
+        
+        if (timeLeft > 0) {
+            isRunning = true;
+            enterFullscreenMode();
+            updateCurrentTask();
+            timer = setInterval(updateTimer, 1000);
+        }
+    }
 }
 
-function setPresetTime(minutes) {
-    timeLeft = minutes * 60;
-    updateTimerDisplay();
-
-    // Update input fields
-    document.getElementById('hours').value = '0';
-    document.getElementById('minutes').value = minutes;
-    document.getElementById('seconds').value = '0';
+function updateTimer() {
+    if (timeLeft > 0) {
+        timeLeft--;
+        updateTimerDisplay();
+    } else {
+        stopTimer();
+        celebrateCompletions();
+    }
 }
 
 function updateTimerDisplay() {
@@ -83,42 +91,122 @@ function updateTimerDisplay() {
     const minutes = Math.floor((timeLeft % 3600) / 60);
     const seconds = timeLeft % 60;
 
-    document.getElementById('timerHours').textContent = String(hours).padStart(2, '0');
-    document.getElementById('timerMinutes').textContent = String(minutes).padStart(2, '0');
-    document.getElementById('timerSeconds').textContent = String(seconds).padStart(2, '0');
+    // Update both normal and fullscreen displays
+    ['timer', 'fsTimer'].forEach(prefix => {
+        document.getElementById(`${prefix}Hours`).textContent = hours.toString().padStart(2, '0');
+        document.getElementById(`${prefix}Minutes`).textContent = minutes.toString().padStart(2, '0');
+        document.getElementById(`${prefix}Seconds`).textContent = seconds.toString().padStart(2, '0');
+    });
 }
 
-function startTimer() {
-    if (!timerInterval && timeLeft > 0) {
-        timerInterval = setInterval(() => {
-            timeLeft--;
-            updateTimerDisplay();
-
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-                showNotification();
-            }
-        }, 1000);
-    }
-}
-
-function pauseTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
+function stopTimer() {
+    clearInterval(timer);
+    isRunning = false;
+    exitFullscreenMode();
 }
 
 function resetTimer() {
-    clearInterval(timerInterval);
-    timerInterval = null;
+    stopTimer();
     timeLeft = 0;
     updateTimerDisplay();
-    
-    // Clear input fields
     document.getElementById('hours').value = '';
     document.getElementById('minutes').value = '';
     document.getElementById('seconds').value = '';
 }
+
+function enterFullscreenMode() {
+    document.getElementById('normalView').classList.add('hidden');
+    document.getElementById('timerView').classList.remove('hidden');
+}
+
+function exitFullscreenMode() {
+    document.getElementById('normalView').classList.remove('hidden');
+    document.getElementById('timerView').classList.add('hidden');
+}
+
+function updateCurrentTask() {
+    const tasks = document.querySelectorAll('.task-item:not(.divider)');
+    currentTask = null;
+    
+    for (let task of tasks) {
+        if (task.dataset.status !== 'done') {
+            currentTask = {
+                id: task.dataset.id,
+                name: task.querySelector('.task-name').textContent,
+                project: task.querySelector('.project-name').textContent,
+                deadline: task.querySelector('.task-deadline').textContent
+            };
+            break;
+        }
+    }
+
+    if (currentTask) {
+        document.getElementById('currentTaskName').textContent = currentTask.name;
+        document.getElementById('currentTaskProject').textContent = currentTask.project;
+        document.getElementById('currentTaskDeadline').textContent = currentTask.deadline;
+        document.getElementById('completeTask').classList.remove('hidden');
+    } else {
+        document.getElementById('currentTaskName').textContent = 'No tasks remaining';
+        document.getElementById('currentTaskProject').textContent = '';
+        document.getElementById('currentTaskDeadline').textContent = '';
+        document.getElementById('completeTask').classList.add('hidden');
+    }
+}
+
+function completeTask() {
+    if (currentTask) {
+        completedTasks.push(currentTask);
+        const taskElement = document.querySelector(`[data-id="${currentTask.id}"]`);
+        taskElement.dataset.status = 'done';
+        document.getElementById('completeTask').classList.add('hidden');
+        document.getElementById('undoComplete').classList.remove('hidden');
+        updateCurrentTask();
+    }
+}
+
+function undoComplete() {
+    if (completedTasks.length > 0) {
+        const lastTask = completedTasks.pop();
+        const taskElement = document.querySelector(`[data-id="${lastTask.id}"]`);
+        taskElement.dataset.status = 'in-progress';
+        document.getElementById('undoComplete').classList.add('hidden');
+        document.getElementById('completeTask').classList.remove('hidden');
+        updateCurrentTask();
+    }
+}
+
+function celebrateCompletions() {
+    if (completedTasks.length > 0) {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+        completedTasks = [];
+    }
+}
+
+// Event Listeners
+document.getElementById('startTimer').addEventListener('click', startTimer);
+document.getElementById('pauseTimer').addEventListener('click', stopTimer);
+document.getElementById('resetTimer').addEventListener('click', resetTimer);
+document.getElementById('exitFullscreen').addEventListener('click', stopTimer);
+document.getElementById('completeTask').addEventListener('click', completeTask);
+document.getElementById('undoComplete').addEventListener('click', undoComplete);
+
+// Preset buttons
+document.getElementById('preset5').addEventListener('click', () => {
+    document.getElementById('minutes').value = '5';
+    document.getElementById('seconds').value = '0';
+});
+document.getElementById('preset15').addEventListener('click', () => {
+    document.getElementById('minutes').value = '15';
+    document.getElementById('seconds').value = '0';
+});
+document.getElementById('preset25').addEventListener('click', () => {
+    document.getElementById('minutes').value = '25';
+    document.getElementById('seconds').value = '0';
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -127,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Timer controls
     document.getElementById('startTimer').addEventListener('click', startTimer);
-    document.getElementById('pauseTimer').addEventListener('click', pauseTimer);
+    document.getElementById('pauseTimer').addEventListener('click', stopTimer);
     document.getElementById('resetTimer').addEventListener('click', resetTimer);
     
     // Preset buttons
