@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tomato Timer with Task Management</title>
+    <title>Optimitimer - Task Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 </head>
 <body>
+    <header class="app-header">
+        <h1>Optimitimer</h1>
+    </header>
     <div id="normalView" class="container">
         <!-- Timer Section -->
         <div class="timer-section">
@@ -31,8 +34,7 @@
                 </div>
             </div>
             <div class="timer-controls">
-                <button id="startTimer">Start</button>
-                <button id="pauseTimer">Pause</button>
+                <button id="startTimer" class="primary-button">Start</button>
                 <button id="resetTimer">Reset</button>
             </div>
         </div>
@@ -42,6 +44,10 @@
             <div class="task-controls">
                 <button onclick="showAddTaskModal()">Add Task</button>
                 <button onclick="addDivider()">Add Divider</button>
+                <div class="file-controls">
+                    <button onclick="exportTasks()" title="Save tasks to a file">Export Tasks</button>
+                    <button onclick="importTasks()" title="Load tasks from a file">Import Tasks</button>
+                </div>
                 <div class="filter-controls">
                     <select id="statusFilter">
                         <option value="all">All Status</option>
@@ -68,6 +74,7 @@
                 <p id="currentTaskDeadline"></p>
             </div>
             <div class="task-actions">
+                <button id="pauseTimer" class="pause-btn">Pause</button>
                 <button id="completeTask" class="complete-btn">Complete Task</button>
                 <button id="undoComplete" class="undo-btn hidden">Undo Complete</button>
             </div>

@@ -156,8 +156,22 @@ function updateCurrentTask() {
 function completeTask() {
     if (currentTask) {
         completedTasks.push(currentTask);
-        const taskElement = document.querySelector(`[data-id="${currentTask.id}"]`);
-        taskElement.dataset.status = 'done';
+        
+        // Call the completeTask function from tasks.js
+        if (typeof window.completeTask === 'function') {
+            window.completeTask(parseInt(currentTask.id));
+        } else {
+            // Fallback if the function isn't available
+            console.warn('completeTask function from tasks.js not available');
+            
+            // Update the DOM element
+            const taskElement = document.querySelector(`[data-id="${currentTask.id}"]`);
+            if (taskElement) {
+                taskElement.dataset.status = 'done';
+            }
+        }
+        
+        // Update UI
         document.getElementById('completeTask').classList.add('hidden');
         document.getElementById('undoComplete').classList.remove('hidden');
         updateCurrentTask();
@@ -167,8 +181,25 @@ function completeTask() {
 function undoComplete() {
     if (completedTasks.length > 0) {
         const lastTask = completedTasks.pop();
+        
+        // We don't have a direct undoComplete in tasks.js, so we'll update the task manually
+        // Find the task in the tasks array and update its status
+        if (typeof window.tasks !== 'undefined' && typeof window.saveTasks === 'function') {
+            const taskId = parseInt(lastTask.id);
+            const taskIndex = window.tasks.findIndex(t => t.id === taskId);
+            if (taskIndex !== -1) {
+                window.tasks[taskIndex].status = 'in-progress';
+                window.saveTasks(); // Save to localStorage
+            }
+        }
+        
+        // Update the DOM element
         const taskElement = document.querySelector(`[data-id="${lastTask.id}"]`);
-        taskElement.dataset.status = 'in-progress';
+        if (taskElement) {
+            taskElement.dataset.status = 'in-progress';
+        }
+        
+        // Update UI
         document.getElementById('undoComplete').classList.add('hidden');
         document.getElementById('completeTask').classList.remove('hidden');
         updateCurrentTask();
@@ -188,9 +219,9 @@ function celebrateCompletions() {
 
 // Event Listeners
 document.getElementById('startTimer').addEventListener('click', startTimer);
-document.getElementById('pauseTimer').addEventListener('click', stopTimer);
 document.getElementById('resetTimer').addEventListener('click', resetTimer);
 document.getElementById('exitFullscreen').addEventListener('click', stopTimer);
+document.getElementById('pauseTimer').addEventListener('click', stopTimer);
 document.getElementById('completeTask').addEventListener('click', completeTask);
 document.getElementById('undoComplete').addEventListener('click', undoComplete);
 
@@ -213,9 +244,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize notifications first
     await initializeNotifications();
     
+    // Access the tasks array from the global scope
+    if (typeof window.tasks === 'undefined') {
+        // If tasks.js hasn't loaded yet, create a reference
+        Object.defineProperty(window, 'tasks', {
+            get: function() { return window.tasks || []; },
+            set: function(value) { window.tasks = value; },
+            configurable: true
+        });
+    }
+    
     // Timer controls
     document.getElementById('startTimer').addEventListener('click', startTimer);
-    document.getElementById('pauseTimer').addEventListener('click', stopTimer);
     document.getElementById('resetTimer').addEventListener('click', resetTimer);
     
     // Preset buttons
@@ -247,4 +287,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
-}); 
+});
+
+// Function to save tasks to localStorage (referencing the one in tasks.js)
+function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+} 
