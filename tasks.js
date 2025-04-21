@@ -209,6 +209,10 @@ window.importTasks = importTasks;
 
 function showAddTaskModal() {
     document.getElementById('taskModal').style.display = 'block';
+    // Focus on the date input to open the calendar picker
+    const dateInput = document.getElementById('taskDeadline');
+    dateInput.focus();
+    dateInput.click();
 }
 
 function closeModal() {

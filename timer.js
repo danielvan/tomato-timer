@@ -229,20 +229,24 @@ document.getElementById('undoComplete').addEventListener('click', undoComplete);
 
 // Preset buttons
 document.getElementById('preset5').addEventListener('click', () => {
+    selectPresetButton('preset5');
     document.getElementById('minutes').value = '5';
     document.getElementById('seconds').value = '0';
 });
 document.getElementById('preset15').addEventListener('click', () => {
+    selectPresetButton('preset15');
     document.getElementById('minutes').value = '15';
     document.getElementById('seconds').value = '0';
 });
 document.getElementById('preset25').addEventListener('click', () => {
+    selectPresetButton('preset25');
     document.getElementById('minutes').value = '25';
     document.getElementById('seconds').value = '0';
 });
 
 // Add this after the preset buttons event listeners
 document.getElementById('customTime').addEventListener('click', () => {
+    selectPresetButton('customTime');
     const timerInput = document.querySelector('.timer-input');
     timerInput.classList.toggle('hidden');
     if (!timerInput.classList.contains('hidden')) {
@@ -298,9 +302,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+
+    // Pre-select the 5 min button
+    selectPresetButton('preset5');
+    document.getElementById('minutes').value = '5';
+    document.getElementById('seconds').value = '0';
 });
 
 // Function to save tasks to localStorage (referencing the one in tasks.js)
 function saveTasks() {
     localStorage.setItem('tasks', JSON.stringify(tasks));
+}
+
+// Add this function to select a preset button and update its styling
+function selectPresetButton(buttonId) {
+    // Remove active class from all preset buttons
+    document.querySelectorAll('.preset-buttons button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Add active class to the selected button
+    document.getElementById(buttonId).classList.add('active');
 } 

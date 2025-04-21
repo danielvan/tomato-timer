@@ -38,9 +38,6 @@
     <div id="normalView" class="container">
         <!-- Timer Section -->
         <div class="timer-section">
-            <div class="timer-display">
-                <span id="timerHours">00</span>:<span id="timerMinutes">00</span>:<span id="timerSeconds">00</span>
-            </div>
             <div class="preset-buttons">
                 <button id="preset5">5 min</button>
                 <button id="preset15">15 min</button>
@@ -94,15 +91,17 @@
             <h2>Add New Task</h2>
             <input type="text" id="taskName" placeholder="Task Name">
             <input type="text" id="projectName" placeholder="Project Name">
-            <input type="date" id="taskDeadline">
+            <input type="date" id="taskDeadline" autocomplete="off">
             <select id="taskStatus">
                 <option value="not-started">Not Started</option>
                 <option value="in-progress">In Progress</option>
                 <option value="done">Done</option>
                 <option value="waiting">Waiting Feedback</option>
             </select>
-            <button onclick="addTask()">Add</button>
-            <button onclick="closeModal()">Cancel</button>
+            <div class="modal-actions">
+                <button class="cancel-button" onclick="closeModal()">Cancel</button>
+                <button class="save-button" onclick="addTask()">Save Changes</button>
+            </div>
         </div>
     </div>
 

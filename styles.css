@@ -7,6 +7,11 @@
 
 body {
     background-color: #f0f0f0;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-image: radial-gradient(#e0e0e0 1px, transparent 1px);
+    background-size: 20px 20px;
 }
 
 .app-header {
@@ -15,6 +20,8 @@ body {
     justify-content: space-between;
     align-items: center;
     background-color: transparent;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .header-controls {
@@ -72,15 +79,10 @@ body {
 }
 
 .timer-section {
-    flex: 0 0 auto;
-    padding: 20px;
     background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: fit-content;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .timer-display {
@@ -93,14 +95,111 @@ body {
 
 .preset-buttons {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
     justify-content: center;
     margin: 20px 0;
+    background: #f5f5f5;
+    padding: 4px;
+    border-radius: 28px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.custom-time-btn {
-    background: linear-gradient(135deg, #6c757d, #5a6268);
+.preset-buttons button {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-size: 14px;
+    color: #666;
+    position: relative;
+    z-index: 1;
+    margin: 0 2px;
+}
+
+.preset-buttons button:hover:not(.active) {
+    color: #333;
+    background-color: rgba(0, 0, 0, 0.12);
+}
+
+.preset-buttons button.active {
+    color: #008060;
+    font-weight: 500;
+    background-color: white;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.02);
+}
+
+/* Remove pseudo-element positioning */
+.preset-buttons button:nth-child(1).active ~ .preset-buttons::after,
+.preset-buttons button:nth-child(2).active ~ .preset-buttons::after,
+.preset-buttons button:nth-child(3).active ~ .preset-buttons::after,
+.preset-buttons button:nth-child(4).active ~ .preset-buttons::after {
+    display: none;
+}
+
+#startTimer {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#startTimer:hover {
+    background: linear-gradient(135deg, #388E3C, #2E7D32);
+    transform: translateY(-1px);
+}
+
+#resetTimer {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#resetTimer:hover {
+    background: linear-gradient(135deg, #c82333, #bd2130);
+    transform: translateY(-1px);
+}
+
+.task-section {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.task-section::before {
+    content: "Tasks";
+    display: block;
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+/* Special divider for waiting feedback section */
+.divider.waiting-feedback {
+    color: #E65100;
+    font-weight: bold;
+    padding: 10px 0;
+    margin: 10px 0;
+    border-bottom: 1px solid #eee;
+    background: none;
+    border-left: none;
 }
 
 .timer-input {
@@ -155,18 +254,11 @@ body {
 
 .container {
     display: flex;
-    min-height: calc(100vh - 5rem);
-    padding: 0 20px 20px;
+    flex-direction: column;
     gap: 20px;
-    max-width: 1200px;
+    max-width: 680px;
     margin: 0 auto;
-}
-
-.task-section {
-    flex: 1;
     padding: 20px;
-    background-color: transparent;
-    max-width: 480px;
 }
 
 .task-list {
@@ -200,14 +292,6 @@ body {
 
 .task-card[data-status="waiting"] {
     border-left: 3px solid #FF9800;
-}
-
-/* Special divider for waiting feedback section */
-.divider.waiting-feedback {
-    background-color: #FFF3E0;
-    border-left: 3px solid #FF9800;
-    color: #E65100;
-    font-weight: bold;
 }
 
 .waiting-tasks-container {
@@ -302,18 +386,20 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    transition: opacity 0.3s ease;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
 }
 
 .modal-content {
+    position: relative;
     background-color: white;
-    padding: 20px;
-    width: 80%;
-    max-width: 500px;
     margin: 100px auto;
-    border-radius: 4px;
-    animation: modalSlideIn 0.3s ease forwards;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    min-height: 300px;
 }
 
 .modal-content h2 {
@@ -559,4 +645,41 @@ body {
 
 .hidden {
     display: none !important;
+}
+
+.modal-actions {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cancel-button {
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 16px;
+}
+
+.cancel-button:hover {
+    text-decoration: underline;
+}
+
+.save-button {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.save-button:hover {
+    background: linear-gradient(135deg, #388E3C, #2E7D32);
 } 
