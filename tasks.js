@@ -207,12 +207,65 @@ window.addEventListener('beforeunload', (event) => {
 window.exportTasks = exportTasks;
 window.importTasks = importTasks;
 
+// Function to update project suggestions
+function updateProjectSuggestions() {
+    const projectNames = new Set();
+    
+    // Collect all unique project names
+    tasks.forEach(task => {
+        if (task.project && task.project.trim()) {
+            projectNames.add(task.project.trim());
+        }
+    });
+    
+    // Clear and repopulate datalist
+    const datalist = document.getElementById('projectList');
+    datalist.innerHTML = '';
+    
+    projectNames.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        datalist.appendChild(option);
+    });
+}
+
+// Function to handle status toggle selection
+function setupStatusToggle() {
+    const statusButtons = document.querySelectorAll('.status-toggle button');
+    
+    statusButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            statusButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+        });
+    });
+}
+
 function showAddTaskModal() {
+    // Update project suggestions
+    updateProjectSuggestions();
+    
     document.getElementById('taskModal').style.display = 'block';
-    // Focus on the date input to open the calendar picker
+    
+    // Setup status toggle
+    setupStatusToggle();
+    
+    // Set up click handler for date input to ensure calendar opens
     const dateInput = document.getElementById('taskDeadline');
-    dateInput.focus();
-    dateInput.click();
+    
+    // Ensure calendar opens when clicking anywhere on the input
+    dateInput.addEventListener('click', function() {
+        // Using a small timeout to ensure focus happens after the click
+        setTimeout(() => {
+            this.showPicker();
+        }, 50);
+    });
+    
+    // Focus on task name field
+    document.getElementById('taskName').focus();
 }
 
 function closeModal() {
@@ -220,11 +273,25 @@ function closeModal() {
     resetModalToAdd();
 }
 
+function resetModalToAdd() {
+    document.getElementById('taskName').value = '';
+    document.getElementById('projectName').value = '';
+    document.getElementById('taskDeadline').value = '';
+    
+    // Reset status toggle to "Not Started"
+    const statusButtons = document.querySelectorAll('.status-toggle button');
+    statusButtons.forEach(btn => btn.classList.remove('active'));
+    document.querySelector('.status-toggle button[data-status="not-started"]').classList.add('active');
+}
+
 function addTask() {
     const taskName = document.getElementById('taskName').value.trim();
     const projectName = document.getElementById('projectName').value.trim();
     const deadline = document.getElementById('taskDeadline').value;
-    const status = document.getElementById('taskStatus').value;
+    
+    // Get status from active toggle button
+    const activeStatusButton = document.querySelector('.status-toggle button.active');
+    const status = activeStatusButton ? activeStatusButton.getAttribute('data-status') : 'not-started';
 
     if (!taskName) return;
 
@@ -264,43 +331,60 @@ function addDivider() {
 
 function editTask(taskId) {
     const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-
-    document.getElementById('taskName').value = task.name;
-    document.getElementById('projectName').value = task.project;
-    document.getElementById('taskDeadline').value = task.deadline;
-    document.getElementById('taskStatus').value = task.status;
-    
-    // Change modal buttons for edit mode
-    const addButton = document.querySelector('#taskModal button[onclick="addTask()"]');
-    addButton.textContent = 'Save Changes';
-    addButton.onclick = () => updateTask(taskId);
-    
-    showAddTaskModal();
+    if (task) {
+        document.getElementById('taskName').value = task.name;
+        document.getElementById('projectName').value = task.project || '';
+        document.getElementById('taskDeadline').value = task.deadline || '';
+        
+        // Set status in toggle
+        const statusButtons = document.querySelectorAll('.status-toggle button');
+        statusButtons.forEach(btn => btn.classList.remove('active'));
+        const statusToSelect = document.querySelector(`.status-toggle button[data-status="${task.status}"]`);
+        if (statusToSelect) {
+            statusToSelect.classList.add('active');
+        } else {
+            // Default to not-started if status doesn't match
+            document.querySelector('.status-toggle button[data-status="not-started"]').classList.add('active');
+        }
+        
+        // Convert button to update
+        const saveButton = document.querySelector('.save-button');
+        saveButton.textContent = 'Update Task';
+        saveButton.onclick = () => updateTask(taskId);
+        
+        document.getElementById('taskModal').style.display = 'block';
+        
+        // Update project suggestions
+        updateProjectSuggestions();
+    }
 }
 
 function updateTask(taskId) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
-    if (taskIndex === -1) return;
+    if (taskIndex !== -1) {
+        const taskName = document.getElementById('taskName').value.trim();
+        const projectName = document.getElementById('projectName').value.trim();
+        const deadline = document.getElementById('taskDeadline').value;
+        
+        // Get status from active toggle button
+        const activeStatusButton = document.querySelector('.status-toggle button.active');
+        const status = activeStatusButton ? activeStatusButton.getAttribute('data-status') : 'not-started';
 
-    const oldStatus = tasks[taskIndex].status;
-    const newStatus = document.getElementById('taskStatus').value;
+        if (!taskName) return;
 
-    tasks[taskIndex] = {
-        id: taskId,
-        name: document.getElementById('taskName').value,
-        project: document.getElementById('projectName').value,
-        deadline: document.getElementById('taskDeadline').value,
-        status: newStatus
-    };
+        tasks[taskIndex] = {
+            ...tasks[taskIndex],
+            name: taskName,
+            project: projectName,
+            deadline: deadline,
+            status: status
+        };
 
-    saveTasks();
-    renderTasks();
-    closeModal();
-    resetModalToAdd();
-
-    // Update current task in fullscreen mode if status changed
-    if (oldStatus !== newStatus) {
+        saveTasks();
+        renderTasks();
+        closeModal();
+        
+        // Update current task in fullscreen mode
         updateCurrentTask();
     }
 }
@@ -330,20 +414,6 @@ function editDivider(dividerId) {
         saveTasks();
         renderTasks();
     }
-}
-
-function resetModalToAdd() {
-    const addButton = document.querySelector('#taskModal button');
-    if (addButton) {
-        addButton.textContent = 'Add';
-        addButton.onclick = addTask;
-    }
-    
-    // Clear form
-    document.getElementById('taskName').value = '';
-    document.getElementById('projectName').value = '';
-    document.getElementById('taskDeadline').value = '';
-    document.getElementById('taskStatus').value = 'not-started';
 }
 
 function completeTask(taskId) {

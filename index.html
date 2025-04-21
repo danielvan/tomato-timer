@@ -90,14 +90,19 @@
         <div class="modal-content">
             <h2>Add New Task</h2>
             <input type="text" id="taskName" placeholder="Task Name">
-            <input type="text" id="projectName" placeholder="Project Name">
+            <div class="project-input-container">
+                <input type="text" id="projectName" placeholder="Project Name" list="projectList">
+                <datalist id="projectList"></datalist>
+            </div>
             <input type="date" id="taskDeadline" autocomplete="off">
-            <select id="taskStatus">
-                <option value="not-started">Not Started</option>
-                <option value="in-progress">In Progress</option>
-                <option value="done">Done</option>
-                <option value="waiting">Waiting Feedback</option>
-            </select>
+            
+            <div class="status-toggle">
+                <button data-status="not-started" class="active">Not Started</button>
+                <button data-status="in-progress">In Progress</button>
+                <button data-status="waiting">Waiting</button>
+                <button data-status="done">Done</button>
+            </div>
+            
             <div class="modal-actions">
                 <button class="cancel-button" onclick="closeModal()">Cancel</button>
                 <button class="save-button" onclick="addTask()">Save Changes</button>
