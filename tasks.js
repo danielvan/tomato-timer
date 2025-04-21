@@ -4,36 +4,65 @@ let changesSinceLastSave = 0;
 const AUTO_SAVE_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
 const CHANGES_THRESHOLD = 10; // Number of changes before suggesting a save
 
+// Global sortable instances
+let regularSortable = null;
+let waitingSortable = null;
+
 // Make tasks array available globally
 window.tasks = tasks;
 
 // Load tasks from local storage
 function loadTasks() {
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-        tasks = JSON.parse(savedTasks);
-        window.tasks = tasks; // Update global reference
-        renderTasks();
-        
-        // Check if there's a last used JSON file
-        const lastJsonFile = localStorage.getItem('lastJsonFile');
-        if (lastJsonFile) {
-            setTimeout(() => {
-                showJsonLoadPrompt(lastJsonFile);
-            }, 1000); // Show after 1 second
+    try {
+        const savedTasks = localStorage.getItem('tasks');
+        if (savedTasks) {
+            tasks = JSON.parse(savedTasks);
+            
+            // Validate tasks array
+            if (!Array.isArray(tasks)) {
+                console.error('Saved tasks is not an array, resetting');
+                tasks = [];
+            }
+            
+            window.tasks = tasks; // Update global reference
+            console.log('Loaded', tasks.length, 'tasks from localStorage');
+            renderTasks();
+            
+            // Check if there's a last used JSON file
+            const lastJsonFile = localStorage.getItem('lastJsonFile');
+            if (lastJsonFile) {
+                setTimeout(() => {
+                    showJsonLoadPrompt(lastJsonFile);
+                }, 1000); // Show after 1 second
+            }
+        } else {
+            console.log('No tasks found in localStorage');
+            tasks = [];
+            window.tasks = tasks;
         }
+    } catch (e) {
+        console.error('Error loading tasks:', e);
+        tasks = [];
+        window.tasks = tasks;
     }
 }
 
 // Save tasks to local storage
 function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-    changesSinceLastSave++;
-    
-    // Check if we should suggest saving to a file
-    if (changesSinceLastSave >= CHANGES_THRESHOLD || 
-        (Date.now() - lastSaveTime) > AUTO_SAVE_INTERVAL) {
-        suggestFileSave();
+    try {
+        console.log('Saving tasks, count:', tasks.length);
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+        changesSinceLastSave++;
+        
+        // Check if we should suggest saving to a file
+        if (changesSinceLastSave >= CHANGES_THRESHOLD || 
+            (Date.now() - lastSaveTime) > AUTO_SAVE_INTERVAL) {
+            suggestFileSave();
+        }
+        return true;
+    } catch (e) {
+        console.error('Error saving tasks:', e);
+        return false;
     }
 }
 
@@ -233,10 +262,18 @@ function updateProjectSuggestions() {
 function setupStatusToggle() {
     const statusButtons = document.querySelectorAll('.status-toggle button');
     
+    // Remove any existing event listeners first
     statusButtons.forEach(button => {
+        button.replaceWith(button.cloneNode(true));
+    });
+    
+    // Add fresh event listeners
+    document.querySelectorAll('.status-toggle button').forEach(button => {
         button.addEventListener('click', function() {
             // Remove active class from all buttons
-            statusButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.status-toggle button').forEach(btn => {
+                btn.classList.remove('active');
+            });
             
             // Add active class to clicked button
             this.classList.add('active');
@@ -252,17 +289,6 @@ function showAddTaskModal() {
     
     // Setup status toggle
     setupStatusToggle();
-    
-    // Set up click handler for date input to ensure calendar opens
-    const dateInput = document.getElementById('taskDeadline');
-    
-    // Ensure calendar opens when clicking anywhere on the input
-    dateInput.addEventListener('click', function() {
-        // Using a small timeout to ensure focus happens after the click
-        setTimeout(() => {
-            this.showPicker();
-        }, 50);
-    });
     
     // Focus on task name field
     document.getElementById('taskName').focus();
@@ -282,6 +308,11 @@ function resetModalToAdd() {
     const statusButtons = document.querySelectorAll('.status-toggle button');
     statusButtons.forEach(btn => btn.classList.remove('active'));
     document.querySelector('.status-toggle button[data-status="not-started"]').classList.add('active');
+    
+    // Reset save button to add new task mode
+    const saveButton = document.getElementById('saveTaskButton');
+    saveButton.textContent = 'Save Changes';
+    saveButton.onclick = addTask;
 }
 
 function addTask() {
@@ -293,7 +324,13 @@ function addTask() {
     const activeStatusButton = document.querySelector('.status-toggle button.active');
     const status = activeStatusButton ? activeStatusButton.getAttribute('data-status') : 'not-started';
 
-    if (!taskName) return;
+    if (!taskName) {
+        alert('Please enter a task name');
+        return;
+    }
+
+    console.log('Adding task:', { name: taskName, project: projectName, deadline, status });
+    console.log('Current tasks count:', tasks.length);
 
     const task = {
         id: Date.now(),
@@ -303,14 +340,24 @@ function addTask() {
         status: status
     };
 
+    // Add the task to array
     tasks.push(task);
-    saveTasks();
-    renderTasks();
-    closeModal();
+    console.log('After push tasks count:', tasks.length);
     
-    // Update current task in fullscreen mode if this is the first task
-    if (tasks.length === 1) {
-        updateCurrentTask();
+    // Save to localStorage
+    if (saveTasks()) {
+        console.log('Tasks saved to localStorage, rendering...');
+        
+        // Render the task list
+        renderTasks();
+        closeModal();
+        
+        // Update current task in fullscreen mode if this is the first task
+        if (tasks.length === 1) {
+            updateCurrentTask();
+        }
+    } else {
+        alert('Failed to save task. Please try again.');
     }
 }
 
@@ -348,9 +395,13 @@ function editTask(taskId) {
         }
         
         // Convert button to update
-        const saveButton = document.querySelector('.save-button');
+        const saveButton = document.getElementById('saveTaskButton');
         saveButton.textContent = 'Update Task';
-        saveButton.onclick = () => updateTask(taskId);
+        
+        // Use a closure to preserve the taskId
+        saveButton.onclick = function() {
+            updateTask(taskId);
+        };
         
         document.getElementById('taskModal').style.display = 'block';
         
@@ -430,17 +481,21 @@ function completeTask(taskId) {
 window.completeTask = completeTask;
 
 function renderTasks() {
+    console.log('Rendering tasks, count:', tasks.length);
     const taskList = document.getElementById('taskList');
     taskList.innerHTML = '';
     
     const statusFilter = document.getElementById('statusFilter').value;
+    console.log('Status filter:', statusFilter);
 
     // Separate waiting feedback tasks
     const waitingTasks = tasks.filter(t => !t.type && t.status === 'waiting');
     const regularTasks = tasks.filter(t => t.type || t.status !== 'waiting');
+    console.log('Regular tasks:', regularTasks.length, 'Waiting tasks:', waitingTasks.length);
 
     // Render regular tasks
-    regularTasks.forEach(item => {
+    regularTasks.forEach((item, index) => {
+        console.log(`Rendering regular task ${index}:`, item);
         if (item.type === 'divider') {
             const dividerElement = document.createElement('div');
             dividerElement.className = 'divider task-enter';
@@ -464,12 +519,16 @@ function renderTasks() {
             `;
             taskList.appendChild(dividerElement);
         } else if (statusFilter === 'all' || item.status === statusFilter) {
+            console.log(`Rendering task ${index} to main list`);
             renderTaskElement(item, taskList);
+        } else {
+            console.log(`Skipping task ${index} due to filter`);
         }
     });
 
     // Add waiting feedback section if there are waiting tasks
     if (waitingTasks.length > 0 && (statusFilter === 'all' || statusFilter === 'waiting')) {
+        console.log('Rendering waiting tasks section');
         // Add waiting feedback divider
         const waitingDivider = document.createElement('div');
         waitingDivider.className = 'divider waiting-feedback task-enter';
@@ -484,61 +543,140 @@ function renderTasks() {
         taskList.appendChild(waitingContainer);
 
         // Render waiting tasks
-        waitingTasks.forEach(task => {
+        waitingTasks.forEach((task, index) => {
+            console.log(`Rendering waiting task ${index}:`, task);
             renderTaskElement(task, waitingContainer);
         });
         
-        // Initialize drag and drop for waiting tasks (only within the waiting container)
-        new Sortable(waitingContainer, {
+        // Initialize waiting tasks sortable in a setTimeout to ensure DOM is ready
+        setTimeout(() => {
+            initWaitingSortable();
+        }, 0);
+    }
+
+    // Initialize main sortable in a setTimeout to ensure DOM is ready
+    setTimeout(() => {
+        initRegularSortable();
+    }, 0);
+}
+
+// Initialize sortable for regular tasks
+function initRegularSortable() {
+    const taskList = document.getElementById('taskList');
+    if (!taskList) {
+        console.error('Task list element not found');
+        return;
+    }
+    
+    // Destroy existing instance if it exists
+    if (regularSortable) {
+        regularSortable.destroy();
+        regularSortable = null;
+    }
+    
+    try {
+        regularSortable = new Sortable(taskList, {
+            animation: 150,
+            ghostClass: 'bg-gray-100',
+            chosenClass: 'bg-gray-200',
+            dragClass: 'shadow-lg',
+            filter: '.waiting-tasks-container, #waitingFeedbackDivider', // Exclude waiting tasks container from main sortable
+            onEnd: function(evt) {
+                console.log('Regular tasks sort ended');
+                updateTasksOrder();
+            }
+        });
+    } catch (e) {
+        console.error('Error creating Sortable for regular tasks:', e);
+    }
+}
+
+// Initialize sortable for waiting tasks
+function initWaitingSortable() {
+    const waitingContainer = document.getElementById('waitingTasksContainer');
+    if (!waitingContainer) {
+        console.error('Waiting container element not found');
+        return;
+    }
+    
+    // Destroy existing instance if it exists
+    if (waitingSortable) {
+        waitingSortable.destroy();
+        waitingSortable = null;
+    }
+    
+    try {
+        waitingSortable = new Sortable(waitingContainer, {
             animation: 150,
             ghostClass: 'bg-gray-100',
             chosenClass: 'bg-gray-200',
             dragClass: 'shadow-lg',
             group: 'waitingTasks', // Unique group name
             onEnd: function(evt) {
-                const newWaitingTasks = [];
-                waitingContainer.childNodes.forEach(node => {
-                    const taskId = parseInt(node.dataset.id);
-                    const task = tasks.find(t => t.id === taskId);
-                    if (task) {
-                        newWaitingTasks.push(task);
-                    }
-                });
-                
-                // Update tasks array with new waiting tasks order
-                const nonWaitingTasks = tasks.filter(t => t.type || t.status !== 'waiting');
-                tasks = [...nonWaitingTasks, ...newWaitingTasks];
-                saveTasks();
+                updateTasksOrder();
+            }
+        });
+    } catch (e) {
+        console.error('Error creating Sortable for waiting tasks:', e);
+    }
+}
+
+// Update task order after drag and drop
+function updateTasksOrder() {
+    const taskList = document.getElementById('taskList');
+    const waitingContainer = document.getElementById('waitingTasksContainer');
+    
+    // First collect regular tasks
+    const newTasks = [];
+    if (taskList) {
+        taskList.childNodes.forEach(node => {
+            if (node.id === 'waitingFeedbackDivider' || node.id === 'waitingTasksContainer') {
+                console.log('Skipping node', node.id);
+                return; // Skip waiting feedback section
+            }
+            if (!node.dataset || !node.dataset.id) {
+                console.log('Skipping node without dataset.id');
+                return; // Skip nodes without dataset.id
+            }
+            const taskId = parseInt(node.dataset.id);
+            console.log('Processing node with ID:', taskId);
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                newTasks.push(task);
+            } else {
+                console.warn('Task not found for ID:', taskId);
             }
         });
     }
-
-    // Initialize drag and drop for regular tasks
-    new Sortable(taskList, {
-        animation: 150,
-        ghostClass: 'bg-gray-100',
-        chosenClass: 'bg-gray-200',
-        dragClass: 'shadow-lg',
-        filter: '.waiting-tasks-container, #waitingFeedbackDivider', // Exclude waiting tasks container from main sortable
-        onEnd: function(evt) {
-            const newTasks = [];
-            taskList.childNodes.forEach(node => {
-                if (node.id === 'waitingFeedbackDivider' || node.id === 'waitingTasksContainer') {
-                    return; // Skip waiting feedback section
-                }
-                const taskId = parseInt(node.dataset.id);
-                const task = tasks.find(t => t.id === taskId);
-                if (task) {
-                    newTasks.push(task);
-                }
-            });
-            
-            // Preserve waiting tasks
-            const waitingTasks = tasks.filter(t => !t.type && t.status === 'waiting');
-            tasks = [...newTasks, ...waitingTasks];
-            saveTasks();
-        }
-    });
+    
+    // Then collect waiting tasks
+    const newWaitingTasks = [];
+    if (waitingContainer) {
+        waitingContainer.childNodes.forEach(node => {
+            if (!node.dataset || !node.dataset.id) {
+                console.log('Skipping waiting node without dataset.id');
+                return;
+            }
+            const taskId = parseInt(node.dataset.id);
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                newWaitingTasks.push(task);
+            }
+        });
+    } else {
+        // No waiting container, get all waiting tasks from the original array
+        const waitingTasks = tasks.filter(t => !t.type && t.status === 'waiting');
+        newWaitingTasks.push(...waitingTasks);
+    }
+    
+    console.log('New task order:', newTasks.length, 'waiting tasks:', newWaitingTasks.length);
+    
+    // Update the tasks array with the new order
+    tasks = [...newTasks, ...newWaitingTasks];
+    console.log('Final tasks after reordering:', tasks.length);
+    
+    // Save to localStorage
+    saveTasks();
 }
 
 function renderTaskElement(task, container) {
@@ -571,16 +709,16 @@ function renderTaskElement(task, container) {
             <h3 class="task-name">${task.name}</h3>
             <p class="project-name">${task.project}</p>
             <p class="task-deadline">${task.deadline}</p>
-            <div class="status-pill ${task.status}" onclick="editTask(${task.id})">${statusDisplay}</div>
+            <div class="status-pill ${task.status}" onclick="event.stopPropagation();">${statusDisplay}</div>
         </div>
         <div class="edit-buttons">
-            <button class="edit-button" onclick="editTask(${task.id})">
+            <button class="edit-button" onclick="event.stopPropagation(); editTask(${task.id})">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 Edit
             </button>
-            <button class="delete-button" onclick="deleteTask(${task.id})">
+            <button class="delete-button" onclick="event.stopPropagation(); deleteTask(${task.id})">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
@@ -588,6 +726,15 @@ function renderTaskElement(task, container) {
             </button>
         </div>
     `;
+    
+    // Add click event to open task in edit mode
+    taskElement.addEventListener('click', function(event) {
+        // Only trigger if not clicking buttons
+        if (!event.target.closest('button')) {
+            editTask(task.id);
+        }
+    });
+    
     container.appendChild(taskElement);
 }
 
@@ -608,4 +755,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('statusFilter').addEventListener('change', renderTasks);
+
+    // Make the calendar open when clicking on the date input
+    const dateInput = document.getElementById('taskDeadline');
+    
+    dateInput.addEventListener('click', function() {
+        this.showPicker();
+    });
 }); 

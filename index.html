@@ -88,8 +88,8 @@
     <!-- Add Task Modal -->
     <div id="taskModal" class="modal">
         <div class="modal-content">
-            <h2>Add New Task</h2>
-            <input type="text" id="taskName" placeholder="Task Name">
+            <h2>Task Manager</h2>
+            <input type="text" id="taskName" placeholder="Task Name" required>
             <div class="project-input-container">
                 <input type="text" id="projectName" placeholder="Project Name" list="projectList">
                 <datalist id="projectList"></datalist>
@@ -105,7 +105,7 @@
             
             <div class="modal-actions">
                 <button class="cancel-button" onclick="closeModal()">Cancel</button>
-                <button class="save-button" onclick="addTask()">Save Changes</button>
+                <button id="saveTaskButton" class="save-button" onclick="addTask()">Save Changes</button>
             </div>
         </div>
     </div>
