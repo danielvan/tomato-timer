@@ -12,6 +12,28 @@
 <body>
     <header class="app-header">
         <h1>Optimitimer</h1>
+        <div class="header-controls">
+            <div class="task-controls">
+                <button onclick="showAddTaskModal()">Add Task</button>
+                <button onclick="addDivider()">Add Divider</button>
+            </div>
+            <div class="filter-controls">
+                <select id="statusFilter">
+                    <option value="all">All Status</option>
+                    <option value="not-started">Not Started</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="done">Done</option>
+                    <option value="waiting">Waiting Feedback</option>
+                </select>
+            </div>
+            <div class="options-dropdown">
+                <button class="options-button">Options</button>
+                <div class="dropdown-content">
+                    <button onclick="exportTasks()">Export Tasks</button>
+                    <button onclick="importTasks()">Import Tasks</button>
+                </div>
+            </div>
+        </div>
     </header>
     <div id="normalView" class="container">
         <!-- Timer Section -->
@@ -23,8 +45,9 @@
                 <button id="preset5">5 min</button>
                 <button id="preset15">15 min</button>
                 <button id="preset25">25 min</button>
+                <button id="customTime" class="custom-time-btn">Custom</button>
             </div>
-            <div class="timer-input">
+            <div class="timer-input hidden">
                 <div class="time-inputs">
                     <input type="number" id="hours" min="0" max="23" placeholder="HH">
                     <span>:</span>
@@ -41,23 +64,6 @@
 
         <!-- Task Section -->
         <div class="task-section">
-            <div class="task-controls">
-                <button onclick="showAddTaskModal()">Add Task</button>
-                <button onclick="addDivider()">Add Divider</button>
-                <div class="file-controls">
-                    <button onclick="exportTasks()" title="Save tasks to a file">Export Tasks</button>
-                    <button onclick="importTasks()" title="Load tasks from a file">Import Tasks</button>
-                </div>
-                <div class="filter-controls">
-                    <select id="statusFilter">
-                        <option value="all">All Status</option>
-                        <option value="not-started">Not Started</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="done">Done</option>
-                        <option value="waiting">Waiting Feedback</option>
-                    </select>
-                </div>
-            </div>
             <div id="taskList" class="task-list"></div>
         </div>
     </div>

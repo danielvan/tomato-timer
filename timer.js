@@ -72,6 +72,8 @@ function startTimer() {
             enterFullscreenMode();
             updateCurrentTask();
             timer = setInterval(updateTimer, 1000);
+            // Hide the custom time input after starting
+            document.querySelector('.timer-input').classList.add('hidden');
         }
     }
 }
@@ -237,6 +239,15 @@ document.getElementById('preset15').addEventListener('click', () => {
 document.getElementById('preset25').addEventListener('click', () => {
     document.getElementById('minutes').value = '25';
     document.getElementById('seconds').value = '0';
+});
+
+// Add this after the preset buttons event listeners
+document.getElementById('customTime').addEventListener('click', () => {
+    const timerInput = document.querySelector('.timer-input');
+    timerInput.classList.toggle('hidden');
+    if (!timerInput.classList.contains('hidden')) {
+        timerInput.classList.add('animate__animated', 'animate__slideInDown');
+    }
 });
 
 // Initialize
