@@ -249,13 +249,15 @@ function updateProjectSuggestions() {
     
     // Clear and repopulate datalist
     const datalist = document.getElementById('projectList');
-    datalist.innerHTML = '';
-    
-    projectNames.forEach(project => {
-        const option = document.createElement('option');
-        option.value = project;
-        datalist.appendChild(option);
-    });
+    if (datalist) {
+        datalist.innerHTML = '';
+        
+        projectNames.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project;
+            datalist.appendChild(option);
+        });
+    }
 }
 
 // Function to handle status toggle selection
@@ -301,8 +303,13 @@ function closeModal() {
 
 function resetModalToAdd() {
     document.getElementById('taskName').value = '';
-    document.getElementById('projectName').value = '';
+    document.getElementById('taskDescription').value = '';
+    document.getElementById('taskProject').value = '';
     document.getElementById('taskDeadline').value = '';
+    
+    // Reset priority
+    const taskPrioritySelect = document.getElementById('taskPriority');
+    if (taskPrioritySelect) taskPrioritySelect.value = 'medium';
     
     // Reset status toggle to "Not Started"
     const statusButtons = document.querySelectorAll('.status-toggle button');
@@ -315,9 +322,11 @@ function resetModalToAdd() {
     saveButton.onclick = addTask;
 }
 
-function addTask() {
+async function addTask() {
     const taskName = document.getElementById('taskName').value.trim();
-    const projectName = document.getElementById('projectName').value.trim();
+    const taskDescription = document.getElementById('taskDescription').value.trim();
+    const taskProject = document.getElementById('taskProject').value.trim();
+    const selectedPriority = document.getElementById('taskPriority')?.value || 'medium';
     const deadline = document.getElementById('taskDeadline').value;
     
     // Get status from active toggle button
@@ -329,35 +338,46 @@ function addTask() {
         return;
     }
 
-    console.log('Adding task:', { name: taskName, project: projectName, deadline, status });
-    console.log('Current tasks count:', tasks.length);
+    // Check if we're in online mode
+    if (window.syncManager && window.syncManager.getSyncStatus().isOnline) {
+        try {
+            const taskData = {
+                name: taskName,
+                description: taskDescription,
+                project: taskProject,
+                status: status,
+                priority: selectedPriority,
+                deadline: deadline || null,
+                order_index: tasks.length
+            };
 
-    const task = {
-        id: Date.now(),
-        name: taskName,
-        project: projectName,
-        deadline: deadline,
-        status: status
-    };
-
-    // Add the task to array
-    tasks.push(task);
-    console.log('After push tasks count:', tasks.length);
-    
-    // Save to localStorage
-    if (saveTasks()) {
-        console.log('Tasks saved to localStorage, rendering...');
-        
-        // Render the task list
-        renderTasks();
-        closeModal();
-        
-        // Update current task in fullscreen mode if this is the first task
-        if (tasks.length === 1) {
-            updateCurrentTask();
+            // Create task in Supabase
+            await window.syncManager.createTask(taskData);
+            closeModal();
+            
+        } catch (error) {
+            console.error('Error creating task:', error);
+            alert('Failed to create task: ' + error.message);
         }
     } else {
-        alert('Failed to save task. Please try again.');
+        // Fallback for offline mode (should rarely happen now)
+        const task = {
+            id: Date.now(),
+            name: taskName,
+            description: taskDescription,
+            project: taskProject,
+            priority: selectedPriority,
+            deadline: deadline,
+            status: status
+        };
+
+        tasks.push(task);
+        if (saveTasks()) {
+            renderTasks();
+            closeModal();
+        } else {
+            alert('Failed to save task. Please try again.');
+        }
     }
 }
 
@@ -379,9 +399,20 @@ function addDivider() {
 function editTask(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
+        // Update project suggestions first
+        updateProjectSuggestions();
+        
+        // Fill form fields
         document.getElementById('taskName').value = task.name;
-        document.getElementById('projectName').value = task.project || '';
+        document.getElementById('taskDescription').value = task.description || '';
+        document.getElementById('taskProject').value = task.project || '';
         document.getElementById('taskDeadline').value = task.deadline || '';
+        
+        // Set priority
+        const taskPrioritySelect = document.getElementById('taskPriority');
+        if (taskPrioritySelect && task.priority) {
+            taskPrioritySelect.value = task.priority;
+        }
         
         // Set status in toggle
         const statusButtons = document.querySelectorAll('.status-toggle button');
@@ -404,17 +435,16 @@ function editTask(taskId) {
         };
         
         document.getElementById('taskModal').style.display = 'block';
-        
-        // Update project suggestions
-        updateProjectSuggestions();
     }
 }
 
-function updateTask(taskId) {
+async function updateTask(taskId) {
     const taskIndex = tasks.findIndex(t => t.id === taskId);
     if (taskIndex !== -1) {
         const taskName = document.getElementById('taskName').value.trim();
-        const projectName = document.getElementById('projectName').value.trim();
+        const taskDescription = document.getElementById('taskDescription').value.trim();
+        const taskProject = document.getElementById('taskProject').value.trim();
+        const selectedPriority = document.getElementById('taskPriority')?.value || 'medium';
         const deadline = document.getElementById('taskDeadline').value;
         
         // Get status from active toggle button
@@ -423,20 +453,44 @@ function updateTask(taskId) {
 
         if (!taskName) return;
 
-        tasks[taskIndex] = {
-            ...tasks[taskIndex],
-            name: taskName,
-            project: projectName,
-            deadline: deadline,
-            status: status
-        };
+        // Check if we're in online mode
+        if (window.syncManager && window.syncManager.getSyncStatus().isOnline) {
+            try {
+                const updateData = {
+                    name: taskName,
+                    description: taskDescription,
+                    project: taskProject,
+                    priority: selectedPriority,
+                    deadline: deadline || null,
+                    status: status
+                };
 
-        saveTasks();
-        renderTasks();
-        closeModal();
-        
-        // Update current task in fullscreen mode
-        updateCurrentTask();
+                await window.syncManager.updateTask(taskId, updateData);
+                closeModal();
+                
+            } catch (error) {
+                console.error('Error updating task:', error);
+                alert('Failed to update task: ' + error.message);
+            }
+        } else {
+            // Fallback for offline mode
+            tasks[taskIndex] = {
+                ...tasks[taskIndex],
+                name: taskName,
+                description: taskDescription,
+                project: taskProject,
+                priority: selectedPriority,
+                deadline: deadline,
+                status: status
+            };
+
+            saveTasks();
+            renderTasks();
+            closeModal();
+            
+            // Update current task in fullscreen mode
+            updateCurrentTask();
+        }
     }
 }
 
@@ -704,11 +758,18 @@ function renderTaskElement(task, container) {
             statusDisplay = task.status;
     }
     
+    // Priority display
+    const priorityDisplay = task.priority || 'medium';
+    
     taskElement.innerHTML = `
         <div class="task-content">
             <h3 class="task-name">${task.name}</h3>
-            <p class="project-name">${task.project}</p>
-            <p class="task-deadline">${task.deadline}</p>
+            ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
+            <div class="task-meta">
+                ${task.project ? `<span class="project-badge">${task.project}</span>` : ''}
+                <span class="priority-badge priority-${priorityDisplay}">${priorityDisplay}</span>
+            </div>
+            ${task.deadline ? `<p class="task-deadline">${task.deadline}</p>` : ''}
             <div class="status-pill ${task.status}" onclick="event.stopPropagation();">${statusDisplay}</div>
         </div>
         <div class="edit-buttons">

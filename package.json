@@ -1,0 +1,22 @@
+{
+  "name": "optimitimer",
+  "version": "1.0.0",
+  "description": "Task management and Pomodoro timer with cloud sync",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx http-server -p 3000 -c-1",
+    "build": "echo 'Build not needed for static site'",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "supabase": "^1.100.0"
+  },
+  "keywords": ["pomodoro", "task-management", "productivity"],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -95,9 +95,13 @@ function updateTimerDisplay() {
 
     // Update both normal and fullscreen displays
     ['timer', 'fsTimer'].forEach(prefix => {
-        document.getElementById(`${prefix}Hours`).textContent = hours.toString().padStart(2, '0');
-        document.getElementById(`${prefix}Minutes`).textContent = minutes.toString().padStart(2, '0');
-        document.getElementById(`${prefix}Seconds`).textContent = seconds.toString().padStart(2, '0');
+        const hoursEl = document.getElementById(`${prefix}Hours`)
+        const minutesEl = document.getElementById(`${prefix}Minutes`)
+        const secondsEl = document.getElementById(`${prefix}Seconds`)
+        
+        if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0')
+        if (minutesEl) minutesEl.textContent = minutes.toString().padStart(2, '0')
+        if (secondsEl) secondsEl.textContent = seconds.toString().padStart(2, '0')
     });
 }
 
@@ -105,6 +109,34 @@ function stopTimer() {
     clearInterval(timer);
     isRunning = false;
     exitFullscreenMode();
+}
+
+function pauseTimer() {
+    if (isRunning) {
+        clearInterval(timer);
+        isRunning = false;
+        
+        // Update button text
+        const pauseBtn = document.getElementById('pauseTimer');
+        if (pauseBtn) {
+            pauseBtn.textContent = 'Resume';
+            pauseBtn.onclick = resumeTimer;
+        }
+    }
+}
+
+function resumeTimer() {
+    if (!isRunning && timeLeft > 0) {
+        isRunning = true;
+        timer = setInterval(updateTimer, 1000);
+        
+        // Update button text
+        const pauseBtn = document.getElementById('pauseTimer');
+        if (pauseBtn) {
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.onclick = pauseTimer;
+        }
+    }
 }
 
 function resetTimer() {
@@ -127,56 +159,83 @@ function exitFullscreenMode() {
 }
 
 function updateCurrentTask() {
-    const tasks = document.querySelectorAll('.task-item:not(.divider)');
     currentTask = null;
     
-    for (let task of tasks) {
-        if (task.dataset.status !== 'done') {
-            currentTask = {
-                id: task.dataset.id,
-                name: task.querySelector('.task-name').textContent,
-                project: task.querySelector('.project-name').textContent,
-                deadline: task.querySelector('.task-deadline').textContent
-            };
-            break;
-        }
+    // Get all incomplete tasks
+    let availableTasks = [];
+    if (window.tasks) {
+        availableTasks = window.tasks.filter(task => 
+            task.type !== 'divider' && 
+            task.status !== 'done'
+        );
+    }
+    
+    // Find first incomplete task
+    if (availableTasks.length > 0) {
+        const firstTask = availableTasks[0];
+        currentTask = {
+            id: firstTask.id || firstTask.supabaseId,
+            name: firstTask.name,
+            description: firstTask.description || '',
+            project: firstTask.project || '',
+            deadline: firstTask.deadline || ''
+        };
     }
 
-    if (currentTask) {
-        document.getElementById('currentTaskName').textContent = currentTask.name;
-        document.getElementById('currentTaskProject').textContent = currentTask.project;
-        document.getElementById('currentTaskDeadline').textContent = currentTask.deadline;
-        document.getElementById('completeTask').classList.remove('hidden');
+    // Update UI
+    const nameEl = document.getElementById('currentTaskName');
+    const projectEl = document.getElementById('currentTaskProject'); 
+    const deadlineEl = document.getElementById('currentTaskDeadline');
+    const completeBtn = document.getElementById('completeTask');
+    
+    if (currentTask && nameEl) {
+        nameEl.textContent = currentTask.name;
+        if (projectEl) projectEl.textContent = currentTask.project;
+        if (deadlineEl) deadlineEl.textContent = currentTask.deadline;
+        if (completeBtn) completeBtn.classList.remove('hidden');
     } else {
-        document.getElementById('currentTaskName').textContent = 'No tasks remaining';
-        document.getElementById('currentTaskProject').textContent = '';
-        document.getElementById('currentTaskDeadline').textContent = '';
-        document.getElementById('completeTask').classList.add('hidden');
+        if (nameEl) nameEl.textContent = 'No tasks remaining';
+        if (projectEl) projectEl.textContent = '';
+        if (deadlineEl) deadlineEl.textContent = '';
+        if (completeBtn) completeBtn.classList.add('hidden');
     }
 }
 
-function completeTask() {
-    if (currentTask) {
-        completedTasks.push(currentTask);
-        
-        // Call the completeTask function from tasks.js
-        if (typeof window.completeTask === 'function') {
-            window.completeTask(parseInt(currentTask.id));
+async function completeTask() {
+    if (!currentTask) return;
+    
+    completedTasks.push(currentTask);
+    
+    try {
+        // Update task status in Supabase if online
+        if (window.syncManager && window.syncManager.getSyncStatus().isOnline) {
+            await window.syncManager.updateTask(currentTask.id, { status: 'done' });
         } else {
-            // Fallback if the function isn't available
-            console.warn('completeTask function from tasks.js not available');
-            
-            // Update the DOM element
-            const taskElement = document.querySelector(`[data-id="${currentTask.id}"]`);
-            if (taskElement) {
-                taskElement.dataset.status = 'done';
+            // Fallback: call legacy function
+            if (typeof window.completeTask === 'function') {
+                window.completeTask(parseInt(currentTask.id));
             }
         }
         
         // Update UI
-        document.getElementById('completeTask').classList.add('hidden');
-        document.getElementById('undoComplete').classList.remove('hidden');
+        const completeBtn = document.getElementById('completeTask');
+        const undoBtn = document.getElementById('undoComplete');
+        
+        if (completeBtn) completeBtn.classList.add('hidden');
+        if (undoBtn) undoBtn.classList.remove('hidden');
+        
         updateCurrentTask();
+        
+        // Track in focus session
+        if (window.focusSession) {
+            window.focusSession.onTaskCompleted(currentTask.id)
+        }
+        
+    } catch (error) {
+        console.error('Error completing task:', error);
+        // Remove from completed tasks if failed
+        completedTasks = completedTasks.filter(t => t.id !== currentTask.id);
+        alert('Failed to complete task: ' + error.message);
     }
 }
 
@@ -223,7 +282,7 @@ function celebrateCompletions() {
 document.getElementById('startTimer').addEventListener('click', startTimer);
 document.getElementById('resetTimer').addEventListener('click', resetTimer);
 document.getElementById('exitFullscreen').addEventListener('click', stopTimer);
-document.getElementById('pauseTimer').addEventListener('click', stopTimer);
+document.getElementById('pauseTimer').addEventListener('click', pauseTimer);
 document.getElementById('completeTask').addEventListener('click', completeTask);
 document.getElementById('undoComplete').addEventListener('click', undoComplete);
 
@@ -323,4 +382,23 @@ function selectPresetButton(buttonId) {
     
     // Add active class to the selected button
     document.getElementById(buttonId).classList.add('active');
+}
+
+// Set preset time function
+function setPresetTime(minutes) {
+    document.getElementById('hours').value = '';
+    document.getElementById('minutes').value = minutes;
+    document.getElementById('seconds').value = '0';
+    selectPresetButton(`preset${minutes}`);
+}
+
+// Update time from inputs function
+function updateTimeFromInputs() {
+    // This function can be used to update display or validation
+    // For now, we'll just ensure the values are valid
+    const hours = parseInt(document.getElementById('hours').value) || 0;
+    const minutes = parseInt(document.getElementById('minutes').value) || 0;
+    const seconds = parseInt(document.getElementById('seconds').value) || 0;
+    
+    // Could add validation or other logic here if needed
 } 
