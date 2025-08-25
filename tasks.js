@@ -28,13 +28,6 @@ function loadTasks() {
             console.log('Loaded', tasks.length, 'tasks from localStorage');
             renderTasks();
             
-            // Check if there's a last used JSON file
-            const lastJsonFile = localStorage.getItem('lastJsonFile');
-            if (lastJsonFile) {
-                setTimeout(() => {
-                    showJsonLoadPrompt(lastJsonFile);
-                }, 1000); // Show after 1 second
-            }
         } else {
             console.log('No tasks found in localStorage');
             tasks = [];
@@ -54,11 +47,6 @@ function saveTasks() {
         localStorage.setItem('tasks', JSON.stringify(tasks));
         changesSinceLastSave++;
         
-        // Check if we should suggest saving to a file
-        if (changesSinceLastSave >= CHANGES_THRESHOLD || 
-            (Date.now() - lastSaveTime) > AUTO_SAVE_INTERVAL) {
-            suggestFileSave();
-        }
         return true;
     } catch (e) {
         console.error('Error saving tasks:', e);
@@ -69,159 +57,12 @@ function saveTasks() {
 // Make saveTasks available globally
 window.saveTasks = saveTasks;
 
-// Suggest saving to a file
-function suggestFileSave() {
-    const saveNotification = document.createElement('div');
-    saveNotification.className = 'save-notification';
-    saveNotification.innerHTML = `
-        <p>You've made several changes. Would you like to save your tasks to a file?</p>
-        <div class="save-actions">
-            <button onclick="exportTasks(); this.parentElement.parentElement.remove();">Save to File</button>
-            <button onclick="this.parentElement.parentElement.remove();">Dismiss</button>
-        </div>
-    `;
-    
-    // Remove any existing notification
-    const existingNotification = document.querySelector('.save-notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-    
-    document.body.appendChild(saveNotification);
-    
-    // Auto-dismiss after 15 seconds
-    setTimeout(() => {
-        if (document.body.contains(saveNotification)) {
-            saveNotification.remove();
-        }
-    }, 15000);
-    
-    // Reset counters
-    lastSaveTime = Date.now();
-    changesSinceLastSave = 0;
-}
 
 // Export tasks to a JSON file
-function exportTasks() {
-    const tasksJSON = JSON.stringify(tasks, null, 2);
-    const blob = new Blob([tasksJSON], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    // Create a filename with date
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
-    const filename = `optimitimer-tasks-${dateStr}.json`;
-    
-    // Remember this filename for next time
-    localStorage.setItem('lastJsonFile', filename);
-    
-    // Create a temporary link and trigger download
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    // Clean up
-    setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 0);
-    
-    // Reset counters
-    lastSaveTime = Date.now();
-    changesSinceLastSave = 0;
-}
 
-// Show prompt to load from last used JSON file
-function showJsonLoadPrompt(filename) {
-    const loadNotification = document.createElement('div');
-    loadNotification.className = 'save-notification';
-    loadNotification.innerHTML = `
-        <p>Would you like to load your tasks from the last used file: <strong>${filename}</strong>?</p>
-        <div class="save-actions">
-            <button onclick="promptLoadLastJsonFile(); this.parentElement.parentElement.remove();">Load File</button>
-            <button onclick="this.parentElement.parentElement.remove();">Use Current Tasks</button>
-        </div>
-    `;
-    
-    document.body.appendChild(loadNotification);
-    
-    // Auto-dismiss after 15 seconds
-    setTimeout(() => {
-        if (document.body.contains(loadNotification)) {
-            loadNotification.remove();
-        }
-    }, 15000);
-}
 
-// Prompt to load the last used JSON file
-function promptLoadLastJsonFile() {
-    if (confirm('This will replace your current tasks. Continue?')) {
-        importTasks(true); // true means try to use the last file
-    }
-}
 
-// Import tasks from a JSON file
-function importTasks(useLastFile = false) {
-    if (useLastFile) {
-        // Show file picker but suggest the last used file
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/json';
-        
-        // Try to set the default file (this doesn't work in all browsers for security reasons)
-        // but at least it will open the file picker in the right directory
-        const lastJsonFile = localStorage.getItem('lastJsonFile');
-        if (lastJsonFile) {
-            try {
-                // This is a hint to the browser, but may not work in all browsers
-                input.setAttribute('webkitdirectory', '');
-                input.setAttribute('directory', '');
-            } catch (e) {
-                console.warn('Could not set directory attribute', e);
-            }
-        }
-        
-        input.onchange = handleFileSelect;
-        input.click();
-    } else {
-        // Regular import
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'application/json';
-        input.onchange = handleFileSelect;
-        input.click();
-    }
-}
 
-// Handle file selection for import
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    // Remember this file name for next time
-    localStorage.setItem('lastJsonFile', file.name);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const importedTasks = JSON.parse(e.target.result);
-            if (Array.isArray(importedTasks)) {
-                tasks = importedTasks;
-                window.tasks = tasks;
-                saveTasks();
-                renderTasks();
-                alert('Tasks imported successfully!');
-            } else {
-                alert('Invalid task file format.');
-            }
-        } catch (error) {
-            alert('Error importing tasks: ' + error.message);
-        }
-    };
-    reader.readAsText(file);
-}
 
 // Auto-save reminder when user is about to leave the page
 window.addEventListener('beforeunload', (event) => {
@@ -232,33 +73,7 @@ window.addEventListener('beforeunload', (event) => {
     }
 });
 
-// Make export and import functions available globally
-window.exportTasks = exportTasks;
-window.importTasks = importTasks;
 
-// Function to update project suggestions
-function updateProjectSuggestions() {
-    const projectNames = new Set();
-    
-    // Collect all unique project names
-    tasks.forEach(task => {
-        if (task.project && task.project.trim()) {
-            projectNames.add(task.project.trim());
-        }
-    });
-    
-    // Clear and repopulate datalist
-    const datalist = document.getElementById('projectList');
-    if (datalist) {
-        datalist.innerHTML = '';
-        
-        projectNames.forEach(project => {
-            const option = document.createElement('option');
-            option.value = project;
-            datalist.appendChild(option);
-        });
-    }
-}
 
 // Function to handle status toggle selection
 function setupStatusToggle() {
@@ -281,6 +96,50 @@ function setupStatusToggle() {
             this.classList.add('active');
         });
     });
+}
+
+// Function to update project suggestions
+function updateProjectSuggestions() {
+    const projectNames = new Set();
+    
+    // Collect all unique project names
+    tasks.forEach(task => {
+        if (task.project && task.project.trim()) {
+            projectNames.add(task.project.trim());
+        }
+    });
+    
+    // Update datalist with project names
+    const datalist = document.getElementById('projectList');
+    if (datalist) {
+        datalist.innerHTML = '';
+        projectNames.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project;
+            datalist.appendChild(option);
+        });
+    }
+    
+    // Update project filter dropdown
+    const projectFilter = document.getElementById('projectFilter');
+    if (projectFilter) {
+        // Save current selection
+        const currentSelection = projectFilter.value;
+        
+        // Clear and repopulate
+        projectFilter.innerHTML = '<option value="all">All Projects</option>';
+        projectNames.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project;
+            option.textContent = project;
+            projectFilter.appendChild(option);
+        });
+        
+        // Restore selection if it still exists
+        if (currentSelection && Array.from(projectFilter.options).some(opt => opt.value === currentSelection)) {
+            projectFilter.value = currentSelection;
+        }
+    }
 }
 
 function showAddTaskModal() {
@@ -399,7 +258,7 @@ function addDivider() {
 function editTask(taskId) {
     const task = tasks.find(t => t.id === taskId);
     if (task) {
-        // Update project suggestions first
+        // Update project suggestions
         updateProjectSuggestions();
         
         // Fill form fields
@@ -540,7 +399,11 @@ function renderTasks() {
     taskList.innerHTML = '';
     
     const statusFilter = document.getElementById('statusFilter').value;
-    console.log('Status filter:', statusFilter);
+    const projectFilter = document.getElementById('projectFilter')?.value || 'all';
+    console.log('Status filter:', statusFilter, 'Project filter:', projectFilter);
+    
+    // Update project suggestions
+    updateProjectSuggestions();
 
     // Separate waiting feedback tasks
     const waitingTasks = tasks.filter(t => !t.type && t.status === 'waiting');
@@ -572,11 +435,17 @@ function renderTasks() {
                 </div>
             `;
             taskList.appendChild(dividerElement);
-        } else if (statusFilter === 'all' || item.status === statusFilter) {
-            console.log(`Rendering task ${index} to main list`);
-            renderTaskElement(item, taskList);
         } else {
-            console.log(`Skipping task ${index} due to filter`);
+            // Apply both status and project filters
+            const statusMatch = statusFilter === 'all' || item.status === statusFilter;
+            const projectMatch = projectFilter === 'all' || (item.project || '') === projectFilter;
+            
+            if (statusMatch && projectMatch) {
+                console.log(`Rendering task ${index} to main list`);
+                renderTaskElement(item, taskList);
+            } else {
+                console.log(`Skipping task ${index} due to filter`);
+            }
         }
     });
 
@@ -596,10 +465,13 @@ function renderTasks() {
         waitingContainer.className = 'waiting-tasks-container';
         taskList.appendChild(waitingContainer);
 
-        // Render waiting tasks
+        // Render waiting tasks (also apply project filter)
         waitingTasks.forEach((task, index) => {
-            console.log(`Rendering waiting task ${index}:`, task);
-            renderTaskElement(task, waitingContainer);
+            const projectMatch = projectFilter === 'all' || (task.project || '') === projectFilter;
+            if (projectMatch) {
+                console.log(`Rendering waiting task ${index}:`, task);
+                renderTaskElement(task, waitingContainer);
+            }
         });
         
         // Initialize waiting tasks sortable in a setTimeout to ensure DOM is ready
@@ -765,25 +637,15 @@ function renderTaskElement(task, container) {
         <div class="task-content">
             <h3 class="task-name">${task.name}</h3>
             ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
-            <div class="task-meta">
-                ${task.project ? `<span class="project-badge">${task.project}</span>` : ''}
-                <span class="priority-badge priority-${priorityDisplay}">${priorityDisplay}</span>
-            </div>
+            ${task.project ? `<p class="task-project">${task.project}</p>` : ''}
             ${task.deadline ? `<p class="task-deadline">${task.deadline}</p>` : ''}
-            <div class="status-pill ${task.status}" onclick="event.stopPropagation();">${statusDisplay}</div>
         </div>
         <div class="edit-buttons">
-            <button class="edit-button" onclick="event.stopPropagation(); editTask(${task.id})">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Edit
+            <button class="edit-button" onclick="event.stopPropagation(); editTask(${task.id})" title="Edit">
+                ✏️
             </button>
-            <button class="delete-button" onclick="event.stopPropagation(); deleteTask(${task.id})">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
+            <button class="delete-button" onclick="event.stopPropagation(); deleteTask(${task.id})" title="Delete">
+                🗑️
             </button>
         </div>
     `;
@@ -816,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('statusFilter').addEventListener('change', renderTasks);
+    document.getElementById('projectFilter').addEventListener('change', renderTasks);
 
     // Make the calendar open when clicking on the date input
     const dateInput = document.getElementById('taskDeadline');

@@ -209,7 +209,6 @@ class SyncManager {
             combined.push({
                 id: task.id, // Keep Supabase ID for syncing
                 name: task.name,
-                project: task.task_groups?.name || '',
                 deadline: task.deadline || '',
                 status: task.status,
                 priority: task.priority,

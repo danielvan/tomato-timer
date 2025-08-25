@@ -184,17 +184,20 @@ function updateCurrentTask() {
 
     // Update UI
     const nameEl = document.getElementById('currentTaskName');
-    const projectEl = document.getElementById('currentTaskProject'); 
+    const descriptionEl = document.getElementById('currentTaskDescription');
+    const projectEl = document.getElementById('currentTaskProject');
     const deadlineEl = document.getElementById('currentTaskDeadline');
     const completeBtn = document.getElementById('completeTask');
     
     if (currentTask && nameEl) {
         nameEl.textContent = currentTask.name;
-        if (projectEl) projectEl.textContent = currentTask.project;
+        if (descriptionEl) descriptionEl.textContent = currentTask.description || '';
+        if (projectEl) projectEl.textContent = currentTask.project || '';
         if (deadlineEl) deadlineEl.textContent = currentTask.deadline;
         if (completeBtn) completeBtn.classList.remove('hidden');
     } else {
         if (nameEl) nameEl.textContent = 'No tasks remaining';
+        if (descriptionEl) descriptionEl.textContent = '';
         if (projectEl) projectEl.textContent = '';
         if (deadlineEl) deadlineEl.textContent = '';
         if (completeBtn) completeBtn.classList.add('hidden');
@@ -217,13 +220,6 @@ async function completeTask() {
             }
         }
         
-        // Update UI
-        const completeBtn = document.getElementById('completeTask');
-        const undoBtn = document.getElementById('undoComplete');
-        
-        if (completeBtn) completeBtn.classList.add('hidden');
-        if (undoBtn) undoBtn.classList.remove('hidden');
-        
         updateCurrentTask();
         
         // Track in focus session
@@ -236,6 +232,16 @@ async function completeTask() {
         // Remove from completed tasks if failed
         completedTasks = completedTasks.filter(t => t.id !== currentTask.id);
         alert('Failed to complete task: ' + error.message);
+    }
+}
+
+function skipTask() {
+    // Simply move to the next task without marking as complete
+    updateCurrentTask();
+    
+    // Track in focus session
+    if (window.focusSession) {
+        window.focusSession.onTaskSkipped && window.focusSession.onTaskSkipped(currentTask?.id)
     }
 }
 
@@ -282,9 +288,9 @@ function celebrateCompletions() {
 document.getElementById('startTimer').addEventListener('click', startTimer);
 document.getElementById('resetTimer').addEventListener('click', resetTimer);
 document.getElementById('exitFullscreen').addEventListener('click', stopTimer);
-document.getElementById('pauseTimer').addEventListener('click', pauseTimer);
+document.getElementById('stopTimer').addEventListener('click', stopTimer);
 document.getElementById('completeTask').addEventListener('click', completeTask);
-document.getElementById('undoComplete').addEventListener('click', undoComplete);
+document.getElementById('skipTask').addEventListener('click', skipTask);
 
 // Preset buttons
 document.getElementById('preset5').addEventListener('click', () => {

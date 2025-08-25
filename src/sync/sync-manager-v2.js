@@ -103,7 +103,6 @@ class SyncManager {
                 id: task.id, // Keep Supabase ID for syncing
                 name: task.name,
                 description: task.description || '',
-                project: task.project || '',
                 deadline: task.deadline || '',
                 status: task.status,
                 priority: task.priority,
