@@ -161,24 +161,43 @@ function exitFullscreenMode() {
 function updateCurrentTask() {
     currentTask = null;
     
-    // Get all incomplete tasks
-    let availableTasks = [];
-    if (window.tasks) {
-        availableTasks = window.tasks.filter(task => 
+    let taskToUse = null;
+    
+    // First, try to get next task from queue
+    if (window.queue && window.queue.length > 0) {
+        // Sort queue by order
+        const sortedQueue = [...window.queue].sort((a, b) => a.order - b.order);
+        
+        // Find first incomplete task in queue
+        for (const queueItem of sortedQueue) {
+            const task = window.tasks?.find(t => t.id === queueItem.id);
+            if (task && task.type !== 'divider' && task.status !== 'done') {
+                taskToUse = task;
+                break;
+            }
+        }
+    }
+    
+    // If no task found in queue, fall back to first incomplete task from main list
+    if (!taskToUse && window.tasks) {
+        const availableTasks = window.tasks.filter(task => 
             task.type !== 'divider' && 
             task.status !== 'done'
         );
+        
+        if (availableTasks.length > 0) {
+            taskToUse = availableTasks[0];
+        }
     }
     
-    // Find first incomplete task
-    if (availableTasks.length > 0) {
-        const firstTask = availableTasks[0];
+    // Set current task
+    if (taskToUse) {
         currentTask = {
-            id: firstTask.id || firstTask.supabaseId,
-            name: firstTask.name,
-            description: firstTask.description || '',
-            project: firstTask.project || '',
-            deadline: firstTask.deadline || ''
+            id: taskToUse.id || taskToUse.supabaseId,
+            name: taskToUse.name,
+            description: taskToUse.description || '',
+            project: taskToUse.project || '',
+            deadline: taskToUse.deadline || ''
         };
     }
 

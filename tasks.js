@@ -1,4 +1,5 @@
 let tasks = [];
+let queue = [];
 let lastSaveTime = Date.now();
 let changesSinceLastSave = 0;
 const AUTO_SAVE_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -7,14 +8,18 @@ const CHANGES_THRESHOLD = 10; // Number of changes before suggesting a save
 // Global sortable instances
 let regularSortable = null;
 let waitingSortable = null;
+let queueSortable = null;
 
 // Make tasks array available globally
 window.tasks = tasks;
+window.queue = queue;
 
-// Load tasks from local storage
+// Load tasks and queue from local storage
 function loadTasks() {
     try {
         const savedTasks = localStorage.getItem('tasks');
+        const savedQueue = localStorage.getItem('queue');
+        
         if (savedTasks) {
             tasks = JSON.parse(savedTasks);
             
@@ -26,25 +31,47 @@ function loadTasks() {
             
             window.tasks = tasks; // Update global reference
             console.log('Loaded', tasks.length, 'tasks from localStorage');
-            renderTasks();
-            
         } else {
             console.log('No tasks found in localStorage');
             tasks = [];
             window.tasks = tasks;
         }
+        
+        if (savedQueue) {
+            queue = JSON.parse(savedQueue);
+            
+            // Validate queue array
+            if (!Array.isArray(queue)) {
+                console.error('Saved queue is not an array, resetting');
+                queue = [];
+            }
+            
+            window.queue = queue; // Update global reference
+            console.log('Loaded', queue.length, 'items in queue from localStorage');
+        } else {
+            console.log('No queue found in localStorage');
+            queue = [];
+            window.queue = queue;
+        }
+        
+        renderTasks();
+        renderQueue();
+        
     } catch (e) {
         console.error('Error loading tasks:', e);
         tasks = [];
+        queue = [];
         window.tasks = tasks;
+        window.queue = queue;
     }
 }
 
-// Save tasks to local storage
+// Save tasks and queue to local storage
 function saveTasks() {
     try {
         console.log('Saving tasks, count:', tasks.length);
         localStorage.setItem('tasks', JSON.stringify(tasks));
+        localStorage.setItem('queue', JSON.stringify(queue));
         changesSinceLastSave++;
         
         return true;
@@ -240,20 +267,63 @@ async function addTask() {
     }
 }
 
-function addDivider() {
-    const dividerText = prompt('Enter divider text (e.g., "Monday"):');
-    if (!dividerText) return;
+// Queue management functions
+function addToQueue(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.type === 'divider') return;
+    
+    // Check if already in queue
+    if (queue.find(q => q.id === taskId)) {
+        alert('Task is already in the queue');
+        return;
+    }
+    
+    queue.push({ id: taskId, order: queue.length });
+    saveTasks();
+    renderQueue();
+    updateClearDoneButton();
+}
 
-    const divider = {
-        id: Date.now(),
-        type: 'divider',
-        text: dividerText
-    };
+function removeFromQueue(taskId) {
+    queue = queue.filter(q => q.id !== taskId);
+    saveTasks();
+    renderQueue();
+}
 
-    tasks.push(divider);
+function clearDoneTasks() {
+    if (!confirm('Are you sure you want to clear all done tasks? This will permanently remove them.')) {
+        return;
+    }
+    
+    // Remove done tasks from main tasks array
+    tasks = tasks.filter(task => task.status !== 'done');
+    
+    // Remove done tasks from queue
+    queue = queue.filter(queueItem => {
+        const task = tasks.find(t => t.id === queueItem.id);
+        return task && task.status !== 'done';
+    });
+    
     saveTasks();
     renderTasks();
+    renderQueue();
+    updateClearDoneButton();
 }
+
+function updateClearDoneButton() {
+    const clearBtn = document.getElementById('clearDoneBtn');
+    const hasDoneTasks = tasks.some(task => task.status === 'done');
+    
+    if (hasDoneTasks) {
+        clearBtn.classList.remove('hidden');
+    } else {
+        clearBtn.classList.add('hidden');
+    }
+}
+
+window.addToQueue = addToQueue;
+window.removeFromQueue = removeFromQueue;
+window.clearDoneTasks = clearDoneTasks;
 
 function editTask(taskId) {
     const task = tasks.find(t => t.id === taskId);
@@ -404,6 +474,9 @@ function renderTasks() {
     
     // Update project suggestions
     updateProjectSuggestions();
+    
+    // Update clear done button visibility
+    updateClearDoneButton();
 
     // Separate waiting feedback tasks
     const waitingTasks = tasks.filter(t => !t.type && t.status === 'waiting');
@@ -420,17 +493,8 @@ function renderTasks() {
             dividerElement.innerHTML = `
                 <span>${item.text}</span>
                 <div class="edit-buttons">
-                    <button class="edit-button" onclick="editDivider(${item.id})">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit
-                    </button>
-                    <button class="delete-button" onclick="deleteTask(${item.id})">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
+                    <button class="delete-button" onclick="deleteTask(${item.id})" title="Delete">
+                        🗑️
                     </button>
                 </div>
             `;
@@ -610,6 +674,7 @@ function renderTaskElement(task, container) {
     taskElement.className = 'task-card task-enter task-item';
     taskElement.dataset.id = task.id;
     taskElement.dataset.status = task.status;
+    taskElement.draggable = true;
     
     // Format status for display
     let statusDisplay = '';
@@ -633,12 +698,16 @@ function renderTaskElement(task, container) {
     // Priority display
     const priorityDisplay = task.priority || 'medium';
     
+    // Check if task is in queue
+    const isInQueue = queue.some(q => q.id === task.id);
+    
     taskElement.innerHTML = `
         <div class="task-content">
             <h3 class="task-name">${task.name}</h3>
             ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
             ${task.project ? `<p class="task-project">${task.project}</p>` : ''}
             ${task.deadline ? `<p class="task-deadline">${task.deadline}</p>` : ''}
+            ${isInQueue ? '<p class="task-queue-indicator" style="color: rgba(0, 0, 0, 0.5); font-size: 14px; font-style: italic;">In Queue</p>' : ''}
         </div>
         <div class="edit-buttons">
             <button class="edit-button" onclick="event.stopPropagation(); editTask(${task.id})" title="Edit">
@@ -650,6 +719,16 @@ function renderTaskElement(task, container) {
         </div>
     `;
     
+    // Add drag event listeners for queue functionality
+    taskElement.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', task.id);
+        taskElement.classList.add('dragging');
+    });
+    
+    taskElement.addEventListener('dragend', () => {
+        taskElement.classList.remove('dragging');
+    });
+    
     // Add click event to open task in edit mode
     taskElement.addEventListener('click', function(event) {
         // Only trigger if not clicking buttons
@@ -660,6 +739,121 @@ function renderTaskElement(task, container) {
     
     container.appendChild(taskElement);
 }
+
+// Render queue items
+function renderQueue() {
+    const queueList = document.getElementById('queueList');
+    if (!queueList) return;
+    
+    queueList.innerHTML = '';
+    
+    if (queue.length === 0) {
+        queueList.innerHTML = '<div class="queue-empty">Drop tasks here to set timer order</div>';
+        return;
+    }
+    
+    // Sort queue by order
+    queue.sort((a, b) => a.order - b.order);
+    
+    queue.forEach((queueItem, index) => {
+        const task = tasks.find(t => t.id === queueItem.id);
+        if (!task || task.type === 'divider') return;
+        
+        const queueElement = document.createElement('div');
+        queueElement.className = 'queue-item';
+        queueElement.dataset.id = task.id;
+        
+        queueElement.innerHTML = `
+            <div class="queue-item-content">
+                <span class="queue-item-name">${task.name}</span>
+                <button class="queue-item-remove" onclick="removeFromQueue(${task.id})" title="Remove from queue">
+                    ×
+                </button>
+            </div>
+        `;
+        
+        queueList.appendChild(queueElement);
+    });
+    
+    // Initialize queue sortable
+    setTimeout(() => {
+        initQueueSortable();
+    }, 0);
+}
+
+// Initialize queue sortable
+function initQueueSortable() {
+    const queueList = document.getElementById('queueList');
+    if (!queueList) return;
+    
+    // Destroy existing instance
+    if (queueSortable) {
+        queueSortable.destroy();
+        queueSortable = null;
+    }
+    
+    // Only create sortable if queue has items
+    if (queue.length === 0) return;
+    
+    try {
+        queueSortable = new Sortable(queueList, {
+            animation: 150,
+            ghostClass: 'queue-item-ghost',
+            chosenClass: 'queue-item-chosen',
+            dragClass: 'queue-item-drag',
+            onEnd: function(evt) {
+                updateQueueOrder();
+            }
+        });
+    } catch (e) {
+        console.error('Error creating Sortable for queue:', e);
+    }
+}
+
+// Update queue order after sorting
+function updateQueueOrder() {
+    const queueList = document.getElementById('queueList');
+    if (!queueList) return;
+    
+    const newQueue = [];
+    queueList.querySelectorAll('.queue-item').forEach((element, index) => {
+        const taskId = parseInt(element.dataset.id);
+        newQueue.push({ id: taskId, order: index });
+    });
+    
+    queue = newQueue;
+    saveTasks();
+}
+
+// Set up queue drag and drop
+function setupQueueDropZone() {
+    const queueList = document.getElementById('queueList');
+    if (!queueList) return;
+    
+    queueList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        queueList.classList.add('drag-over');
+    });
+    
+    queueList.addEventListener('dragleave', (e) => {
+        // Only remove if leaving the queue area entirely
+        if (!queueList.contains(e.relatedTarget)) {
+            queueList.classList.remove('drag-over');
+        }
+    });
+    
+    queueList.addEventListener('drop', (e) => {
+        e.preventDefault();
+        queueList.classList.remove('drag-over');
+        
+        const taskId = parseInt(e.dataTransfer.getData('text/plain'));
+        if (taskId) {
+            addToQueue(taskId);
+        }
+    });
+}
+
+window.renderQueue = renderQueue;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -686,4 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
     dateInput.addEventListener('click', function() {
         this.showPicker();
     });
+    
+    // Setup queue drop zone
+    setupQueueDropZone();
 }); 

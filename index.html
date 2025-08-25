@@ -16,10 +16,6 @@
         <div class="header-controls">
             <!-- Show when logged in -->
             <div id="loggedInControls" class="hidden">
-                <div class="task-controls">
-                    <button onclick="showAddTaskModal()">Add Task</button>
-                    <button onclick="addDivider()">Add Divider</button>
-                </div>
                 <!-- User info -->
                 <div id="userInfo" class="user-info-header">
                     <div id="userAvatar" class="user-avatar">U</div>
@@ -64,24 +60,42 @@
             </div>
         </div>
 
-        <!-- Task Section -->
-        <div class="task-section">
-            <div class="task-section-header">
-                <h2 class="tasks-title">Tasks</h2>
-                <div class="task-filters">
-                    <select id="statusFilter">
-                        <option value="all">All Status</option>
-                        <option value="not-started">Not Started</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="done">Done</option>
-                        <option value="waiting">Waiting Feedback</option>
-                    </select>
-                    <select id="projectFilter">
-                        <option value="all">All Projects</option>
-                    </select>
+        <!-- Two Column Layout -->
+        <div class="task-main-container">
+            <!-- Left Column: Tasks -->
+            <div class="task-section">
+                <div class="task-section-header">
+                    <h2 class="tasks-title">Tasks</h2>
+                    <div class="task-header-controls">
+                        <div class="task-filters">
+                            <select id="statusFilter">
+                                <option value="all">All Status</option>
+                                <option value="not-started">Not Started</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="done">Done</option>
+                                <option value="waiting">Waiting Feedback</option>
+                            </select>
+                            <select id="projectFilter">
+                                <option value="all">All Projects</option>
+                            </select>
+                        </div>
+                        <button class="add-task-btn" onclick="showAddTaskModal()">Add Task</button>
+                    </div>
                 </div>
+                <div class="task-actions-bar">
+                    <button id="clearDoneBtn" class="clear-done-btn hidden">Clear Done Tasks</button>
+                </div>
+                <div id="taskList" class="task-list"></div>
             </div>
-            <div id="taskList" class="task-list"></div>
+            
+            <!-- Right Column: Queue -->
+            <div class="queue-section">
+                <div class="queue-header">
+                    <h2 class="queue-title">Queue</h2>
+                    <span class="queue-subtitle">Drag tasks here to set timer order</span>
+                </div>
+                <div id="queueList" class="queue-list"></div>
+            </div>
         </div>
     </div>
 
