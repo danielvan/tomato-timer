@@ -293,7 +293,8 @@ body {
 
 .task-actions-bar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 10px;
 }
 
@@ -310,6 +311,53 @@ body {
 
 .clear-done-btn:hover {
     color: #000000;
+}
+
+/* Show done tasks checkbox */
+.show-done-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.6);
+    user-select: none;
+}
+
+.show-done-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.show-done-checkbox .checkmark {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #e0e0e0;
+    background-color: white;
+    margin-right: 8px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.show-done-checkbox:hover .checkmark {
+    border-color: #000000;
+}
+
+.show-done-checkbox input[type="checkbox"]:checked + .checkmark {
+    background-color: #000000;
+    border-color: #000000;
+}
+
+.show-done-checkbox input[type="checkbox"]:checked + .checkmark:after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 2px;
+    width: 3px;
+    height: 7px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .queue-list {

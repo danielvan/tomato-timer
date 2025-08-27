@@ -587,7 +587,9 @@ function renderTasks() {
     
     const statusFilter = document.getElementById('statusFilter').value;
     const projectFilter = document.getElementById('projectFilter')?.value || 'all';
-    console.log('Status filter:', statusFilter, 'Project filter:', projectFilter);
+    const showDoneCheckbox = document.getElementById('showDoneCheckbox');
+    const showDone = showDoneCheckbox ? showDoneCheckbox.checked : true;
+    console.log('Status filter:', statusFilter, 'Project filter:', projectFilter, 'Show done:', showDone);
     
     // Update project suggestions
     updateProjectSuggestions();
@@ -617,11 +619,12 @@ function renderTasks() {
             `;
             taskList.appendChild(dividerElement);
         } else {
-            // Apply both status and project filters
+            // Apply status, project, and done filters
             const statusMatch = statusFilter === 'all' || item.status === statusFilter;
             const projectMatch = projectFilter === 'all' || (item.project || '') === projectFilter;
+            const doneMatch = showDone || item.status !== 'done';
             
-            if (statusMatch && projectMatch) {
+            if (statusMatch && projectMatch && doneMatch) {
                 console.log(`Rendering task ${index} to main list`);
                 renderTaskElement(item, taskList);
             } else {
@@ -646,10 +649,11 @@ function renderTasks() {
         waitingContainer.className = 'waiting-tasks-container';
         taskList.appendChild(waitingContainer);
 
-        // Render waiting tasks (also apply project filter)
+        // Render waiting tasks (apply both project and done filters)
         waitingTasks.forEach((task, index) => {
             const projectMatch = projectFilter === 'all' || (task.project || '') === projectFilter;
-            if (projectMatch) {
+            const doneMatch = showDone || task.status !== 'done';
+            if (projectMatch && doneMatch) {
                 console.log(`Rendering waiting task ${index}:`, task);
                 renderTaskElement(task, waitingContainer);
             }
@@ -1035,6 +1039,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('statusFilter').addEventListener('change', renderTasks);
     document.getElementById('projectFilter').addEventListener('change', renderTasks);
+    document.getElementById('showDoneCheckbox').addEventListener('change', renderTasks);
 
     // Make the calendar open when clicking on the date input
     const dateInput = document.getElementById('taskDeadline');
