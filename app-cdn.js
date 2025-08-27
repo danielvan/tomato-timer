@@ -196,43 +196,30 @@ class App {
             position: fixed;
             bottom: 20px;
             left: 50%;
-            transform: translateX(-50%) translateY(100%);
+            transform: translateX(-50%);
             z-index: 3000;
-            padding: 8px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
             font-weight: 500;
-            transition: transform 0.3s ease;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background-color: #333;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         `
-        
-        if (type === 'success') {
-            notification.style.backgroundColor = 'rgba(76, 175, 80, 0.1)'
-            notification.style.color = '#2e7d32'
-            notification.style.borderColor = 'rgba(76, 175, 80, 0.3)'
-        } else if (type === 'error') {
-            notification.style.backgroundColor = 'rgba(244, 67, 54, 0.1)'
-            notification.style.color = '#c62828'
-            notification.style.borderColor = 'rgba(244, 67, 54, 0.3)'
-        } else {
-            notification.style.backgroundColor = 'rgba(33, 150, 243, 0.1)'
-            notification.style.color = '#1565c0'
-            notification.style.borderColor = 'rgba(33, 150, 243, 0.3)'
-        }
         
         notification.textContent = message
         
         document.body.appendChild(notification)
         
-        // Slide in from bottom
+        // Fade in
         setTimeout(() => {
-            notification.style.transform = 'translateX(-50%) translateY(0)'
+            notification.style.opacity = '1'
         }, 100)
         
-        // Slide out after delay
+        // Fade out after delay
         setTimeout(() => {
-            notification.style.transform = 'translateX(-50%) translateY(100%)'
+            notification.style.opacity = '0'
             setTimeout(() => {
                 if (document.body.contains(notification)) {
                     notification.remove()
