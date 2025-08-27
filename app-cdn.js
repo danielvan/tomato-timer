@@ -43,6 +43,17 @@ class App {
         this.currentUser = window.authFunctions.getCurrentUser()
         this.updateUI()
         
+        // If user is already authenticated on page load, switch to online mode
+        if (this.currentUser) {
+            try {
+                await window.syncManager.switchToOnlineMode()
+                this.showSyncMessage('Connected to cloud. Tasks loaded!')
+            } catch (error) {
+                console.error('Error switching to online mode on page load:', error)
+                this.showErrorMessage('Failed to load tasks: ' + error.message)
+            }
+        }
+        
         console.log('App initialized. User:', this.currentUser?.email || 'Not logged in')
     }
     

@@ -71,14 +71,20 @@ async function createTask(taskData) {
             order_index: taskData.order_index || 0
         }
         
+        console.log('Creating task with data:', newTask);
+        
         const { data, error } = await supabase
             .from('tasks')
             .insert([newTask])
             .select('*')
             .single()
         
-        if (error) throw error
+        if (error) {
+            console.error('Supabase error creating task:', error);
+            throw error;
+        }
         
+        console.log('Task created successfully:', data);
         return { data, error: null }
     } catch (error) {
         console.error('Error creating task:', error)

@@ -165,13 +165,18 @@ function updateCurrentTask() {
     
     // First, try to get next task from queue
     if (window.queue && window.queue.length > 0) {
+        console.log('Current queue:', window.queue);
         // Sort queue by order
         const sortedQueue = [...window.queue].sort((a, b) => a.order - b.order);
+        console.log('Sorted queue:', sortedQueue);
         
         // Find first incomplete task in queue
         for (const queueItem of sortedQueue) {
-            const task = window.tasks?.find(t => t.id === queueItem.id);
+            console.log('Checking queue item:', queueItem);
+            const task = window.tasks?.find(t => t.id == queueItem.id);
+            console.log('Found task for queue item:', task?.name);
             if (task && task.type !== 'divider' && task.status !== 'done') {
+                console.log('Selected task from queue:', task.name);
                 taskToUse = task;
                 break;
             }

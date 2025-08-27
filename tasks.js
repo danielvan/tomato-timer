@@ -238,7 +238,9 @@ async function addTask() {
             };
 
             // Create task in Supabase
+            console.log('Creating task in Supabase:', taskData);
             await window.syncManager.createTask(taskData);
+            console.log('Task created successfully, UI should be updated');
             closeModal();
             
         } catch (error) {
@@ -269,11 +271,11 @@ async function addTask() {
 
 // Queue management functions
 function addToQueue(taskId) {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find(t => t.id == taskId);
     if (!task || task.type === 'divider') return;
     
     // Check if already in queue
-    if (queue.find(q => q.id === taskId)) {
+    if (queue.find(q => q.id == taskId)) {
         alert('Task is already in the queue');
         return;
     }
@@ -285,7 +287,7 @@ function addToQueue(taskId) {
 }
 
 function removeFromQueue(taskId) {
-    queue = queue.filter(q => q.id !== taskId);
+    queue = queue.filter(q => q.id != taskId);
     saveTasks();
     renderQueue();
 }
@@ -326,7 +328,7 @@ window.removeFromQueue = removeFromQueue;
 window.clearDoneTasks = clearDoneTasks;
 
 function editTask(taskId) {
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find(t => t.id == taskId);
     if (task) {
         // Update project suggestions
         updateProjectSuggestions();
@@ -368,7 +370,7 @@ function editTask(taskId) {
 }
 
 async function updateTask(taskId) {
-    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    const taskIndex = tasks.findIndex(t => t.id == taskId);
     if (taskIndex !== -1) {
         const taskName = document.getElementById('taskName').value.trim();
         const taskDescription = document.getElementById('taskDescription').value.trim();
@@ -423,20 +425,135 @@ async function updateTask(taskId) {
     }
 }
 
-function deleteTask(taskId) {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+// Store deleted items for undo
+let deletedItems = [];
 
-    const element = document.querySelector(`[data-id="${taskId}"]`);
-    element.classList.remove('task-enter');
-    element.classList.add('task-exit');
+function deleteTask(taskId) {
+    const task = tasks.find(t => t.id == taskId);
+    if (!task) return;
+
+    // Store the deleted task for undo
+    const deletedItem = {
+        task: { ...task },
+        originalIndex: tasks.findIndex(t => t.id == taskId),
+        deletedAt: Date.now(),
+        timeoutId: null
+    };
+
+    // Remove from tasks array immediately
+    tasks = tasks.filter(t => t.id != taskId);
     
-    element.addEventListener('animationend', () => {
-        tasks = tasks.filter(t => t.id !== taskId);
-        saveTasks();
-        renderTasks();
-        updateCurrentTask(); // Update current task in fullscreen mode
-    });
+    // Also remove from queue if present
+    queue = queue.filter(q => q.id != taskId);
+    
+    saveTasks();
+    renderTasks();
+    renderQueue();
+    updateCurrentTask();
+
+    // Show undo notification
+    showUndoNotification(taskId, task.name);
+
+    // Set timeout to permanently delete after 10 seconds
+    deletedItem.timeoutId = setTimeout(() => {
+        // Remove from deleted items array
+        deletedItems = deletedItems.filter(item => item.task.id != taskId);
+        
+        // If online, delete from Supabase
+        if (window.syncManager && window.syncManager.getSyncStatus().isOnline) {
+            window.syncManager.deleteTask(taskId).catch(error => {
+                console.error('Error deleting task from Supabase:', error);
+            });
+        }
+    }, 10000);
+
+    deletedItems.push(deletedItem);
 }
+
+function undoDelete(taskId) {
+    const deletedItemIndex = deletedItems.findIndex(item => item.task.id == taskId);
+    if (deletedItemIndex === -1) return;
+
+    const deletedItem = deletedItems[deletedItemIndex];
+    
+    // Clear the timeout
+    if (deletedItem.timeoutId) {
+        clearTimeout(deletedItem.timeoutId);
+    }
+
+    // Restore the task
+    tasks.splice(deletedItem.originalIndex, 0, deletedItem.task);
+    
+    saveTasks();
+    renderTasks();
+    renderQueue();
+    updateCurrentTask();
+
+    // Remove from deleted items
+    deletedItems.splice(deletedItemIndex, 1);
+
+    // Hide undo notification
+    const notification = document.getElementById(`undo-${taskId}`);
+    if (notification) {
+        notification.remove();
+    }
+}
+
+function showUndoNotification(taskId, taskName) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = `undo-${taskId}`;
+    notification.className = 'undo-notification';
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 3000;
+        max-width: 350px;
+        padding: 12px 16px;
+        background-color: #333;
+        color: white;
+        border-radius: 6px;
+        font-size: 14px;
+        animation: slideInUp 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    `;
+    
+    notification.innerHTML = `
+        <span>Deleted "${taskName}"</span>
+        <button onclick="undoDelete('${taskId}')" style="
+            background: #fff;
+            color: #333;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        ">UNDO</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        if (document.body.contains(notification)) {
+            notification.style.animation = 'slideOutDown 0.3s ease';
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 10000);
+}
+
+// Make undoDelete available globally
+window.undoDelete = undoDelete;
 
 function editDivider(dividerId) {
     const divider = tasks.find(t => t.id === dividerId);
@@ -451,7 +568,7 @@ function editDivider(dividerId) {
 }
 
 function completeTask(taskId) {
-    const taskIndex = tasks.findIndex(t => t.id === taskId);
+    const taskIndex = tasks.findIndex(t => t.id == taskId);
     if (taskIndex === -1) return;
 
     tasks[taskIndex].status = 'done';
@@ -493,7 +610,7 @@ function renderTasks() {
             dividerElement.innerHTML = `
                 <span>${item.text}</span>
                 <div class="edit-buttons">
-                    <button class="delete-button" onclick="deleteTask(${item.id})" title="Delete">
+                    <button class="delete-button" onclick="deleteTask('${item.id}')" title="Delete">
                         🗑️
                     </button>
                 </div>
@@ -571,8 +688,22 @@ function initRegularSortable() {
             chosenClass: 'bg-gray-200',
             dragClass: 'shadow-lg',
             filter: '.waiting-tasks-container, #waitingFeedbackDivider', // Exclude waiting tasks container from main sortable
+            onStart: function(evt) {
+                console.log('Sortable drag started');
+                // Store original position in case we need to cancel
+                evt.item.setAttribute('data-original-index', evt.oldIndex);
+            },
             onEnd: function(evt) {
                 console.log('Regular tasks sort ended');
+                
+                // Check if we're still dragging (means drag to external area)
+                const draggedElement = document.querySelector('.dragging');
+                if (draggedElement) {
+                    console.log('Still dragging - external drag detected, reverting sortable');
+                    // Don't update task order for external drags
+                    return;
+                }
+                
                 updateTasksOrder();
             }
         });
@@ -628,9 +759,9 @@ function updateTasksOrder() {
                 console.log('Skipping node without dataset.id');
                 return; // Skip nodes without dataset.id
             }
-            const taskId = parseInt(node.dataset.id);
+            const taskId = node.dataset.id;
             console.log('Processing node with ID:', taskId);
-            const task = tasks.find(t => t.id === taskId);
+            const task = tasks.find(t => t.id == taskId);
             if (task) {
                 newTasks.push(task);
             } else {
@@ -647,8 +778,8 @@ function updateTasksOrder() {
                 console.log('Skipping waiting node without dataset.id');
                 return;
             }
-            const taskId = parseInt(node.dataset.id);
-            const task = tasks.find(t => t.id === taskId);
+            const taskId = node.dataset.id;
+            const task = tasks.find(t => t.id == taskId);
             if (task) {
                 newWaitingTasks.push(task);
             }
@@ -667,6 +798,9 @@ function updateTasksOrder() {
     
     // Save to localStorage
     saveTasks();
+    
+    // Update queue display since task order may have changed
+    renderQueue();
 }
 
 function renderTaskElement(task, container) {
@@ -699,21 +833,27 @@ function renderTaskElement(task, container) {
     const priorityDisplay = task.priority || 'medium';
     
     // Check if task is in queue
-    const isInQueue = queue.some(q => q.id === task.id);
+    const isInQueue = queue.some(q => q.id == task.id);
     
     taskElement.innerHTML = `
         <div class="task-content">
-            <h3 class="task-name">${task.name}</h3>
+            <div class="task-header">
+                <h3 class="task-name">${task.name}</h3>
+                <div class="task-labels">
+                    <span class="task-status task-status-${task.status}">${statusDisplay}</span>
+                    <span class="task-priority task-priority-${priorityDisplay.toLowerCase()}">${priorityDisplay.charAt(0).toUpperCase() + priorityDisplay.slice(1)}</span>
+                </div>
+            </div>
             ${task.description ? `<p class="task-description">${task.description}</p>` : ''}
-            ${task.project ? `<p class="task-project">${task.project}</p>` : ''}
-            ${task.deadline ? `<p class="task-deadline">${task.deadline}</p>` : ''}
-            ${isInQueue ? '<p class="task-queue-indicator" style="color: rgba(0, 0, 0, 0.5); font-size: 14px; font-style: italic;">In Queue</p>' : ''}
+            ${task.project ? `<p class="task-project">📁 ${task.project}</p>` : ''}
+            ${task.deadline ? `<p class="task-deadline">📅 ${task.deadline}</p>` : ''}
+            ${isInQueue ? '<p class="task-queue-indicator" style="color: rgba(0, 0, 0, 0.5); font-size: 14px; font-style: italic;">⏰ In Queue</p>' : ''}
         </div>
         <div class="edit-buttons">
-            <button class="edit-button" onclick="event.stopPropagation(); editTask(${task.id})" title="Edit">
+            <button class="edit-button" onclick="event.stopPropagation(); editTask('${task.id}')" title="Edit">
                 ✏️
             </button>
-            <button class="delete-button" onclick="event.stopPropagation(); deleteTask(${task.id})" title="Delete">
+            <button class="delete-button" onclick="event.stopPropagation(); deleteTask('${task.id}')" title="Delete">
                 🗑️
             </button>
         </div>
@@ -721,7 +861,9 @@ function renderTaskElement(task, container) {
     
     // Add drag event listeners for queue functionality
     taskElement.addEventListener('dragstart', (e) => {
+        console.log('Dragstart - setting task ID:', task.id);
         e.dataTransfer.setData('text/plain', task.id);
+        e.dataTransfer.effectAllowed = 'copy';
         taskElement.classList.add('dragging');
     });
     
@@ -756,7 +898,7 @@ function renderQueue() {
     queue.sort((a, b) => a.order - b.order);
     
     queue.forEach((queueItem, index) => {
-        const task = tasks.find(t => t.id === queueItem.id);
+        const task = tasks.find(t => t.id == queueItem.id);
         if (!task || task.type === 'divider') return;
         
         const queueElement = document.createElement('div');
@@ -766,7 +908,7 @@ function renderQueue() {
         queueElement.innerHTML = `
             <div class="queue-item-content">
                 <span class="queue-item-name">${task.name}</span>
-                <button class="queue-item-remove" onclick="removeFromQueue(${task.id})" title="Remove from queue">
+                <button class="queue-item-remove" onclick="removeFromQueue('${task.id}')" title="Remove from queue">
                     ×
                 </button>
             </div>
@@ -792,8 +934,7 @@ function initQueueSortable() {
         queueSortable = null;
     }
     
-    // Only create sortable if queue has items
-    if (queue.length === 0) return;
+    // Create sortable even when empty to allow drops
     
     try {
         queueSortable = new Sortable(queueList, {
@@ -802,6 +943,7 @@ function initQueueSortable() {
             chosenClass: 'queue-item-chosen',
             dragClass: 'queue-item-drag',
             onEnd: function(evt) {
+                console.log('Queue items reordered');
                 updateQueueOrder();
             }
         });
@@ -817,11 +959,16 @@ function updateQueueOrder() {
     
     const newQueue = [];
     queueList.querySelectorAll('.queue-item').forEach((element, index) => {
-        const taskId = parseInt(element.dataset.id);
+        const taskId = element.dataset.id;
         newQueue.push({ id: taskId, order: index });
+        console.log(`Queue item ${index}: ${taskId}`);
     });
     
+    console.log('Old queue:', queue);
+    console.log('New queue order:', newQueue);
+    
     queue = newQueue;
+    window.queue = queue; // Make sure global reference is updated
     saveTasks();
 }
 
@@ -844,11 +991,26 @@ function setupQueueDropZone() {
     
     queueList.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         queueList.classList.remove('drag-over');
         
-        const taskId = parseInt(e.dataTransfer.getData('text/plain'));
-        if (taskId) {
+        console.log('Queue drop event triggered');
+        let taskId = e.dataTransfer.getData('text/plain');
+        console.log('Raw dropped data:', JSON.stringify(taskId));
+        
+        // SortableJS interferes with our drag data, so get the ID from the dragged element
+        const draggedElement = document.querySelector('.dragging');
+        if (draggedElement && draggedElement.dataset.id) {
+            taskId = draggedElement.dataset.id;
+            console.log('Got task ID from dragged element:', taskId);
+            
+            // Clean up dragging class
+            draggedElement.classList.remove('dragging');
+            
             addToQueue(taskId);
+        } else {
+            console.log('Could not find dragging element or its ID - checking if this is a reorder within queue');
+            // This might be a queue reorder, which is handled by the sortable onEnd event
         }
     });
 }

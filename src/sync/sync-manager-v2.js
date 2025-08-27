@@ -82,6 +82,15 @@ class SyncManager {
                 if (typeof window.renderTasks === 'function') {
                     window.renderTasks()
                 }
+                
+                // Also update queue display and current task
+                if (typeof window.renderQueue === 'function') {
+                    window.renderQueue()
+                }
+                
+                if (typeof window.updateCurrentTask === 'function') {
+                    window.updateCurrentTask()
+                }
             }
             
             this.lastSyncTime = Date.now()
@@ -103,6 +112,7 @@ class SyncManager {
                 id: task.id, // Keep Supabase ID for syncing
                 name: task.name,
                 description: task.description || '',
+                project: task.project || '',
                 deadline: task.deadline || '',
                 status: task.status,
                 priority: task.priority,
