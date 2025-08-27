@@ -47,7 +47,7 @@ class App {
         if (this.currentUser) {
             try {
                 await window.syncManager.switchToOnlineMode()
-                this.showSyncMessage('Connected to cloud. Tasks loaded!')
+                this.showSyncMessage('Connected')
             } catch (error) {
                 console.error('Error switching to online mode on page load:', error)
                 this.showErrorMessage('Failed to load tasks: ' + error.message)
@@ -90,12 +90,11 @@ class App {
         
         if (event === 'SIGNED_IN') {
             console.log('User signed in:', user.email)
-            this.showWelcomeMessage(user)
             
             // Switch to online mode and sync data
             try {
                 await window.syncManager.switchToOnlineMode()
-                this.showSyncMessage('Connected to cloud. Tasks loaded!')
+                this.showSyncMessage('Connected')
             } catch (error) {
                 console.error('Error switching to online mode:', error)
                 this.showErrorMessage('Failed to load tasks: ' + error.message)
@@ -195,40 +194,51 @@ class App {
         notification.className = `sync-notification ${type}`
         notification.style.cssText = `
             position: fixed;
-            top: 80px;
-            right: 20px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
             z-index: 3000;
-            max-width: 350px;
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            animation: slideInRight 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         `
         
         if (type === 'success') {
-            notification.style.backgroundColor = '#e8f5e8'
+            notification.style.backgroundColor = 'rgba(76, 175, 80, 0.1)'
             notification.style.color = '#2e7d32'
-            notification.style.borderLeft = '4px solid #4caf50'
+            notification.style.borderColor = 'rgba(76, 175, 80, 0.3)'
         } else if (type === 'error') {
-            notification.style.backgroundColor = '#ffebee'
+            notification.style.backgroundColor = 'rgba(244, 67, 54, 0.1)'
             notification.style.color = '#c62828'
-            notification.style.borderLeft = '4px solid #f44336'
+            notification.style.borderColor = 'rgba(244, 67, 54, 0.3)'
         } else {
-            notification.style.backgroundColor = '#e3f2fd'
+            notification.style.backgroundColor = 'rgba(33, 150, 243, 0.1)'
             notification.style.color = '#1565c0'
-            notification.style.borderLeft = '4px solid #2196f3'
+            notification.style.borderColor = 'rgba(33, 150, 243, 0.3)'
         }
         
         notification.textContent = message
         
         document.body.appendChild(notification)
         
+        // Slide in from bottom
         setTimeout(() => {
-            if (document.body.contains(notification)) {
-                notification.remove()
-            }
-        }, 4000)
+            notification.style.transform = 'translateX(-50%) translateY(0)'
+        }, 100)
+        
+        // Slide out after delay
+        setTimeout(() => {
+            notification.style.transform = 'translateX(-50%) translateY(100%)'
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    notification.remove()
+                }
+            }, 300)
+        }, 2000)
     }
     
     async handleSignOut() {
