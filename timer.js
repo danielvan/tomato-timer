@@ -321,16 +321,25 @@ document.getElementById('preset5').addEventListener('click', () => {
     selectPresetButton('preset5');
     document.getElementById('minutes').value = '5';
     document.getElementById('seconds').value = '0';
+    // Hide custom timer input when preset is selected
+    const timerInput = document.querySelector('.timer-input');
+    timerInput.classList.add('hidden');
 });
 document.getElementById('preset15').addEventListener('click', () => {
     selectPresetButton('preset15');
     document.getElementById('minutes').value = '15';
     document.getElementById('seconds').value = '0';
+    // Hide custom timer input when preset is selected
+    const timerInput = document.querySelector('.timer-input');
+    timerInput.classList.add('hidden');
 });
 document.getElementById('preset25').addEventListener('click', () => {
     selectPresetButton('preset25');
     document.getElementById('minutes').value = '25';
     document.getElementById('seconds').value = '0';
+    // Hide custom timer input when preset is selected
+    const timerInput = document.querySelector('.timer-input');
+    timerInput.classList.add('hidden');
 });
 
 // Add this after the preset buttons event listeners
