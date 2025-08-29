@@ -1502,12 +1502,12 @@ body {
     border: none;
     color: #000000;
     cursor: pointer;
-    padding: 0;
+    padding: 8px;
     border-radius: 0;
     font-size: 16px;
     font-weight: bold;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    transition: none;
+    transition: color 0.2s ease;
 }
 
 .user-menu-btn:hover {
@@ -1522,15 +1522,19 @@ body {
     top: 100%;
     background-color: white;
     min-width: 160px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    border-radius: 6px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    border: 1px solid #e0e0e0;
     z-index: 1000;
-    border: 1px solid #eee;
-    margin-top: 4px;
+    margin-top: 2px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
 }
 
-.user-dropdown:hover .user-dropdown-content {
+.user-dropdown-content.show {
     display: block;
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .user-dropdown-item {

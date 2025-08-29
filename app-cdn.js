@@ -70,6 +70,7 @@ class App {
         const signOutBtn = document.getElementById('signOutBtn')
         if (signOutBtn) {
             signOutBtn.addEventListener('click', async () => {
+                this.closeUserDropdown() // Close dropdown when clicking menu item
                 await this.handleSignOut()
             })
         }
@@ -79,8 +80,26 @@ class App {
         if (changePasswordBtn) {
             changePasswordBtn.addEventListener('click', () => {
                 this.authModal.show('changePassword')
+                this.closeUserDropdown() // Close dropdown when clicking menu item
             })
         }
+        
+        // User menu dropdown toggle
+        const userMenuBtn = document.getElementById('userMenuBtn')
+        if (userMenuBtn) {
+            userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation()
+                this.toggleUserDropdown()
+            })
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.querySelector('.user-dropdown')
+            if (dropdown && !dropdown.contains(e.target)) {
+                this.closeUserDropdown()
+            }
+        })
     }
     
     async handleAuthStateChange(user, event) {
@@ -226,6 +245,32 @@ class App {
                 }
             }, 300)
         }, 2000)
+    }
+    
+    toggleUserDropdown() {
+        const dropdownContent = document.querySelector('.user-dropdown-content')
+        if (dropdownContent) {
+            const isVisible = dropdownContent.classList.contains('show')
+            if (isVisible) {
+                this.closeUserDropdown()
+            } else {
+                this.openUserDropdown()
+            }
+        }
+    }
+    
+    openUserDropdown() {
+        const dropdownContent = document.querySelector('.user-dropdown-content')
+        if (dropdownContent) {
+            dropdownContent.classList.add('show')
+        }
+    }
+    
+    closeUserDropdown() {
+        const dropdownContent = document.querySelector('.user-dropdown-content')
+        if (dropdownContent) {
+            dropdownContent.classList.remove('show')
+        }
     }
     
     async handleSignOut() {
