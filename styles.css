@@ -1251,11 +1251,393 @@ body {
     cursor: pointer;
 }
 
-/* Responsive layout */
+/* Mobile Responsive Design */
 @media (max-width: 768px) {
+    /* Header adjustments */
+    .app-header {
+        padding: 15px 20px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: #ffffff;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .app-header h1 {
+        font-size: 18px;
+    }
+    
+    body {
+        padding-top: 65px; /* Reduced header space for mobile */
+    }
+    
+    /* User info mobile optimization */
+    .user-info-header {
+        gap: 8px;
+    }
+    
+    .user-name {
+        display: none; /* Hide username on mobile to save space */
+    }
+    
+    .user-menu-btn {
+        padding: 12px; /* Larger touch target */
+        font-size: 18px;
+    }
+    
+    .user-dropdown-content {
+        right: -10px; /* Better positioning on mobile */
+        min-width: 140px;
+    }
+    
+    /* Main layout */
     .task-main-container {
         grid-template-columns: 1fr;
         gap: 20px;
+        padding: 0 15px;
+    }
+    
+    /* Timer section mobile optimization */
+    .timer-section {
+        padding: 20px 15px;
+        margin-bottom: 30px;
+    }
+    
+    /* Mobile-optimized timer buttons */
+    .preset-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 15px 0;
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .preset-buttons button {
+        padding: 12px 8px;
+        font-size: 14px;
+        min-height: 44px; /* iOS recommended minimum touch target */
+        font-weight: bold;
+    }
+    
+    /* Timer controls */
+    .timer-controls {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-top: 20px;
+    }
+    
+    #startTimer, #resetTimer {
+        padding: 12px 20px;
+        font-size: 16px;
+        min-height: 44px;
+        flex: 1;
+        max-width: 120px;
+    }
+    
+    /* Custom time inputs */
+    .time-inputs {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        align-items: center;
+        margin: 15px 0;
+    }
+    
+    .time-inputs input {
+        width: 50px;
+        height: 44px;
+        text-align: center;
+        font-size: 16px;
+        border: 1px solid #e0e0e0;
+        padding: 8px 4px;
+    }
+    
+    .time-inputs span {
+        font-size: 18px;
+        font-weight: bold;
+        color: #666;
+    }
+    
+    /* Task section mobile optimization */
+    .task-section-header {
+        padding: 20px 0 15px;
+    }
+    
+    .tasks-title {
+        font-size: 28px;
+        margin-bottom: 15px;
+    }
+    
+    /* Mobile task header controls */
+    .task-header-controls {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+    
+    .task-filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    .task-filters select {
+        padding: 12px;
+        font-size: 16px;
+        min-height: 44px;
+        border: 1px solid #e0e0e0;
+        background: white;
+        color: #000;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    
+    /* Add task button mobile */
+    .add-task-btn {
+        padding: 12px 16px;
+        font-size: 16px;
+        min-height: 44px;
+        width: 100%;
+    }
+    
+    /* Task actions bar mobile */
+    .task-actions-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .show-done-checkbox {
+        font-size: 16px;
+    }
+    
+    .show-done-checkbox .checkmark {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+    }
+    
+    /* Individual task cards mobile optimization */
+    .task {
+        padding: 16px;
+        margin-bottom: 12px;
+    }
+    
+    .task-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .task-labels {
+        align-self: flex-end;
+        margin-top: -8px;
+    }
+    
+    .task-name {
+        font-size: 18px !important;
+        line-height: 1.3;
+    }
+    
+    .task-description, .task-project, .task-deadline {
+        font-size: 16px !important;
+        margin-top: 8px;
+    }
+    
+    /* Edit buttons mobile - larger touch targets */
+    .edit-buttons {
+        gap: 8px;
+        margin-top: 8px;
+    }
+    
+    .edit-button, .delete-button {
+        padding: 8px;
+        font-size: 16px;
+        min-width: 40px;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Queue section mobile optimization */
+    .queue-section {
+        padding: 20px 0;
+    }
+    
+    .queue-title {
+        font-size: 28px;
+    }
+    
+    .queue-subtitle {
+        font-size: 16px;
+        margin-top: 8px;
+    }
+    
+    .queue-list {
+        min-height: 150px;
+        padding: 16px;
+    }
+    
+    .queue-item {
+        padding: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .queue-item-name {
+        font-size: 16px;
+    }
+    
+    .queue-item-remove {
+        padding: 8px;
+        font-size: 18px;
+        min-width: 32px;
+        min-height: 32px;
+    }
+    
+    /* Modal mobile optimization */
+    .modal {
+        padding: 20px;
+    }
+    
+    .modal-content {
+        width: calc(100vw - 40px);
+        max-width: none;
+        margin: 0;
+        border-radius: 8px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+    
+    .modal-header h2 {
+        font-size: 24px;
+    }
+    
+    .close-btn {
+        font-size: 28px;
+        padding: 8px;
+        min-width: 36px;
+        min-height: 36px;
+    }
+    
+    /* Form elements mobile */
+    .modal-body input[type="text"],
+    .modal-body input[type="date"], 
+    .modal-body textarea,
+    .modal-body select {
+        padding: 12px;
+        font-size: 16px;
+        min-height: 44px;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .modal-body textarea {
+        min-height: 80px;
+        resize: vertical;
+    }
+    
+    .modal-actions {
+        gap: 10px;
+        flex-direction: column;
+    }
+    
+    .modal-actions button {
+        padding: 12px 16px;
+        font-size: 16px;
+        min-height: 44px;
+        width: 100%;
+    }
+    
+    /* Auth modal mobile */
+    .auth-modal .modal-content {
+        width: calc(100vw - 40px);
+        margin: 20px;
+    }
+    
+    .auth-submit {
+        padding: 12px 16px;
+        font-size: 16px;
+        min-height: 44px;
+        width: 100%;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    /* Even more compact header for small phones */
+    .app-header {
+        padding: 12px 15px;
+    }
+    
+    .app-header h1 {
+        font-size: 16px;
+    }
+    
+    body {
+        padding-top: 55px;
+    }
+    
+    /* Compact timer section */
+    .timer-section {
+        padding: 15px 10px;
+    }
+    
+    /* Smaller timer buttons for tiny screens */
+    .preset-buttons {
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 8px;
+        max-width: 100%;
+    }
+    
+    .preset-buttons button {
+        padding: 10px 4px;
+        font-size: 12px;
+        min-height: 40px;
+    }
+    
+    /* Compact task layout */
+    .task-main-container {
+        padding: 0 10px;
+        gap: 15px;
+    }
+    
+    .tasks-title, .queue-title {
+        font-size: 24px;
+    }
+    
+    /* Smaller task cards */
+    .task {
+        padding: 12px;
+    }
+    
+    .task-name {
+        font-size: 16px !important;
+    }
+    
+    .task-description, .task-project, .task-deadline {
+        font-size: 14px !important;
+    }
+    
+    /* Compact modals for very small screens */
+    .modal {
+        padding: 15px;
+    }
+    
+    .modal-content {
+        width: calc(100vw - 30px);
+        max-height: calc(100vh - 30px);
+    }
+    
+    .modal-header h2 {
+        font-size: 20px;
     }
 }
 
